@@ -1,4 +1,4 @@
-from layers import LayerNorm, clones, SublayerConnection
+from modules.layers import LayerNorm, clones, SublayerConnection
 import torch.nn as nn
 
 

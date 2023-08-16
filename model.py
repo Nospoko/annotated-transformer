@@ -1,13 +1,13 @@
 import torch.nn as nn
 import torch
 import copy
-from attention import MultiHeadedAttention
-from fnn import PositionwiseFeedForward
-from positional_encoding import PositionalEncoding
-from encoderdecoder import EncoderDecoder, Generator, subsequent_mask
-from decoder import Decoder, DecoderLayer
-from encoder import Encoder, EncoderLayer
-from embeddings import Embeddings
+from modules.attention import MultiHeadedAttention
+from modules.fnn import PositionwiseFeedForward
+from modules.positional_encoding import PositionalEncoding
+from modules.encoderdecoder import EncoderDecoder, Generator, subsequent_mask
+from modules.decoder import Decoder, DecoderLayer
+from modules.encoder import Encoder, EncoderLayer
+from modules.embeddings import Embeddings
 
 
 def make_model(
