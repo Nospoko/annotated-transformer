@@ -1,7 +1,8 @@
 import time
+import uuid
 from os.path import exists
 from typing import Callable, Iterable
-import uuid
+
 import hydra
 import spacy
 import torch
@@ -38,7 +39,7 @@ class TrainState:
 def load_trained_model(cfg) -> tuple[nn.Module, str]:
     # load tokenizers and vocab
     spacy_de, spacy_en = load_tokenizers()
-    vocab_src, vocab_tgt = load_vocab(spacy_de, spacy_en)
+    vocab_src, vocab_tgt = load_vocab(spacy_de, spacy_en, cfg.data_slice)
     # if model from cfg does not exist - train a new model
     if not exists(cfg.model_path):
         _, run_id = train_model(vocab_src, vocab_tgt, spacy_de, spacy_en, cfg)
@@ -76,6 +77,7 @@ def train_model(
         vocab_tgt,
         spacy_de,
         spacy_en,
+        slice=cfg.data_slice,
         batch_size=cfg.batch_size,
         max_padding=cfg.max_padding,
     )

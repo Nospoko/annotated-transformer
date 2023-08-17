@@ -4,8 +4,6 @@ import altair as alt
 import torch.nn as nn
 from torch.nn.functional import log_softmax
 
-import modules.encoder
-
 alt.renderers.enable("altair_viewer")
 
 
