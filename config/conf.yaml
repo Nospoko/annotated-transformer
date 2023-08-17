@@ -8,4 +8,5 @@ warmup: 3000
 file_prefix: "wmt16_model_"
 model_path: "wmt16_model_final.pt"
 run: "tests"
+project: "transformer"
 data_slice: "1%"

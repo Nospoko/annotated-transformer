@@ -19,7 +19,7 @@ from modules.label_smoothing import LabelSmoothing
 from data.dataloaders import load_vocab, load_tokenizers, create_dataloaders
 
 
-@hydra.main(config_path="cfg", config_name="conf", version_base=None)
+@hydra.main(config_path="config", config_name="conf", version_base=None)
 def main(cfg: DictConfig):
     module, run_id = load_trained_model(cfg)
     file_path = f"models/{cfg.file_prefix}-{run_id}-final.pt"
@@ -42,9 +42,10 @@ def load_trained_model(cfg) -> tuple[nn.Module, str]:
     vocab_src, vocab_tgt = load_vocab(spacy_de, spacy_en, cfg.data_slice)
     # if model from cfg does not exist - train a new model
     if not exists(cfg.model_path):
-        _, run_id = train_model(vocab_src, vocab_tgt, spacy_de, spacy_en, cfg)
-    model = make_model(len(vocab_src), len(vocab_tgt), n=6)
-    model.load_state_dict(torch.load(cfg.model_path))
+        model, run_id = train_model(vocab_src, vocab_tgt, spacy_de, spacy_en, cfg)
+    else:
+        model = make_model(len(vocab_src), len(vocab_tgt), n=6)
+        model.load_state_dict(torch.load(cfg.model_path))
     return model, run_id
 
 
@@ -52,7 +53,7 @@ def initialize_wandb(cfg: DictConfig) -> str:
     # initialize experiment on WandB with unique run id
     run_id = str(uuid.uuid1())[:8]
     wandb.init(
-        project=cfg.logger.project,
+        project=cfg.project,
         name=f"{cfg.run}-{run_id}",
         config=OmegaConf.to_container(cfg, resolve=True),
     )
@@ -101,12 +102,12 @@ def train_model(
             train_state=train_state,
         )
 
-        file_path = "%s%.2d.pt" % (cfg.file_prefix, epoch)
+        file_path = "models/%s-%s-%.2d.pt" % (cfg.file_prefix, run_id, epoch)
         torch.save(module.state_dict(), file_path)
 
         print(f"Epoch {epoch} Validation ====", flush=True)
         model.eval()
-        sloss = val_epoch(
+        sloss, val_state = val_epoch(
             (Batch(b[0], b[1], pad_idx) for b in valid_dataloader),
             model,
             SimpleLossCompute(module.generator, criterion),
