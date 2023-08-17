@@ -5,3 +5,4 @@ torchtext~=0.15.2
 pandas~=2.0.3
 altair~=4.2.2
 GPUtil~=1.4.0
+altair-viewer~=0.4.0
