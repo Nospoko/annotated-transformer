@@ -1,17 +1,20 @@
-import time
-import torch
-from modules.label_smoothing import LabelSmoothing
-from model import make_model
-import torch.distributed as dist
-from torch.nn.parallel import DistributedDataParallel as DDP
-from data.dataloaders import create_dataloaders, load_vocab, load_tokenizers
-from torch.optim.lr_scheduler import LambdaLR
-from data.batch import Batch
-import GPUtil
-from dummies import DummyOptimizer, DummyScheduler
-from os.path import exists
 import os
+import time
+from os.path import exists
+
+import torch
+import GPUtil
+import torchtext.vocab.vocab
+import torch.distributed as dist
 import torch.multiprocessing as mp
+from torch.optim.lr_scheduler import LambdaLR
+from torch.nn.parallel import DistributedDataParallel as DDP
+
+from data.batch import Batch
+from model import make_model
+from dummies import DummyOptimizer, DummyScheduler
+from modules.label_smoothing import LabelSmoothing
+from data.dataloaders import load_vocab, load_tokenizers, create_dataloaders
 
 
 def main():
@@ -28,7 +31,6 @@ class TrainState:
 
 
 def train_distributed_model(vocab_src, vocab_tgt, spacy_de, spacy_en, config):
-
     ngpus = torch.cuda.device_count()
     os.environ["MASTER_ADDR"] = "localhost"
     os.environ["MASTER_PORT"] = "12356"
@@ -41,15 +43,11 @@ def train_distributed_model(vocab_src, vocab_tgt, spacy_de, spacy_en, config):
     )
 
 
-def train_model(vocab_src, vocab_tgt, spacy_de, spacy_en, config):
+def train_model(vocab_src: torchtext.vocab.Vocab, vocab_tgt: torchtext.vocab.Vocab, spacy_de, spacy_en, config):
     if config["distributed"]:
-        train_distributed_model(
-            vocab_src, vocab_tgt, spacy_de, spacy_en, config
-        )
+        train_distributed_model(vocab_src, vocab_tgt, spacy_de, spacy_en, config)
     else:
-        train_worker(
-            0, 1, vocab_src, vocab_tgt, spacy_de, spacy_en, config, False
-        )
+        train_worker(0, 1, vocab_src, vocab_tgt, spacy_de, spacy_en, config, False)
 
 
 def load_trained_model():
@@ -61,7 +59,7 @@ def load_trained_model():
         "base_lr": 1.0,
         "max_padding": 72,
         "warmup": 3000,
-        "file_prefix": "multi30k_model_",
+        "file_prefix": "wmt16_model_",
     }
     model_path = "wmt16_model_final.pt"
     spacy_de, spacy_en = load_tokenizers()
@@ -75,29 +73,25 @@ def load_trained_model():
 
 
 def train_worker(
-        gpu,
-        ngpus_per_node,
-        vocab_src,
-        vocab_tgt,
-        spacy_de,
-        spacy_en,
-        config,
-        is_distributed=False,
+    gpu,
+    ngpus_per_node,
+    vocab_src,
+    vocab_tgt,
+    spacy_de,
+    spacy_en,
+    config,
+    is_distributed=False,
 ):
     pad_idx = vocab_tgt["<blank>"]
     d_model = 512
     model = make_model(len(vocab_src), len(vocab_tgt), n=6)
     module = model
     if is_distributed:
-        dist.init_process_group(
-            "nccl", init_method="env://", rank=gpu, world_size=ngpus_per_node
-        )
+        dist.init_process_group("nccl", init_method="env://", rank=gpu, world_size=ngpus_per_node)
         model = DDP(model, device_ids=[gpu])
         module = model.module
         is_main_process = gpu == 0
-    criterion = LabelSmoothing(
-        size=len(vocab_tgt), padding_idx=pad_idx, smoothing=0.1
-    )
+    criterion = LabelSmoothing(size=len(vocab_tgt), padding_idx=pad_idx, smoothing=0.1)
     criterion.cuda(gpu)
     train_dataloader, valid_dataloader = create_dataloaders(
         gpu,
@@ -109,14 +103,10 @@ def train_worker(
         max_padding=config["max_padding"],
         is_distributed=is_distributed,
     )
-    optimizer = torch.optim.Adam(
-        model.parameters(), lr=config["base_lr"], betas=(0.9, 0.98), eps=1e-9
-    )
+    optimizer = torch.optim.Adam(model.parameters(), lr=config["base_lr"], betas=(0.9, 0.98), eps=1e-9)
     lr_scheduler = LambdaLR(
         optimizer=optimizer,
-        lr_lambda=lambda step: rate(
-            step, d_model, factor=1, warmup=config["warmup"]
-        ),
+        lr_lambda=lambda step: rate(step, d_model, factor=1, warmup=config["warmup"]),
     )
     train_state = TrainState()
 
@@ -171,12 +161,7 @@ class SimpleLossCompute:
 
     def __call__(self, x, y, norm):
         x = self.generator(x)
-        sloss = (
-            self.criterion(
-                x.contiguous().view(-1, x.size(-1)), y.contiguous().view(-1)
-            )
-            / norm
-        )
+        sloss = self.criterion(x.contiguous().view(-1, x.size(-1)), y.contiguous().view(-1)) / norm
         return sloss.data * norm, sloss
 
 
@@ -197,9 +182,7 @@ def run_epoch(
     tokens = 0
     n_accum = 0
     for i, batch in enumerate(data_iter):
-        out = model.forward(
-            batch.src, batch.tgt, batch.src_mask, batch.tgt_mask
-        )
+        out = model.forward(batch.src, batch.tgt, batch.src_mask, batch.tgt_mask)
         loss, loss_node = loss_compute(out, batch.tgt_y, batch.ntokens)
         # loss_node = loss_node / accum_iter
         if mode == "train" or mode == "train+log":
@@ -221,10 +204,7 @@ def run_epoch(
             lr = optimizer.param_groups[0]["lr"]
             elapsed = time.time() - start
             print(
-                (
-                    "Epoch Step: %6d | Accumulation Step: %3d | Loss: %6.2f "
-                    + "| Tokens / Sec: %7.1f | Learning Rate: %6.1e"
-                )
+                ("Epoch Step: %6d | Accumulation Step: %3d | Loss: %6.2f " + "| Tokens / Sec: %7.1f | Learning Rate: %6.1e")
                 % (i, n_accum, loss / batch.ntokens, tokens / elapsed, lr)
             )
             start = time.time()
@@ -241,10 +221,8 @@ def rate(step, model_size, factor, warmup):
     """
     if step == 0:
         step = 1
-    return factor * (
-        model_size ** (-0.5) * min(step ** (-0.5), step * warmup ** (-1.5))
-    )
+    return factor * (model_size ** (-0.5) * min(step ** (-0.5), step * warmup ** (-1.5)))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

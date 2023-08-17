@@ -1,20 +1,19 @@
-from torch.utils.data import DataLoader
-import torch
-import spacy
 import os
-from tqdm import tqdm
-import torchtext.datasets
-from torchtext.vocab import build_vocab_from_iterator
 from os.path import exists
-from torch.nn.functional import pad
-from torchtext.data.functional import to_map_style_dataset
-from torch.utils.data.distributed import DistributedSampler
-from data.batch import collate_batch
+
+import spacy
+import torch
 import datasets
+from torch.utils.data import DataLoader
+from torchtext.vocab.vocab import Vocab
+from torchtext.vocab import build_vocab_from_iterator
+from torch.utils.data.distributed import DistributedSampler
+
+from data.batch import collate_batch
+from data.dataset import TranslationDataset
 
 
 def load_tokenizers():
-
     try:
         spacy_de = spacy.load("de_core_news_sm")
     except IOError:
@@ -39,11 +38,6 @@ def yield_tokens(data_iter, tokenizer, index):
         yield tokenizer(tuple(from_to.values())[index])
 
 
-def prepare_data(data):
-    data = data["translation"]
-    return data
-
-
 def build_vocabulary(spacy_de, spacy_en):
     def tokenize_de(text):
         return tokenize(text, spacy_de)
@@ -51,10 +45,7 @@ def build_vocabulary(spacy_de, spacy_en):
     def tokenize_en(text):
         return tokenize(text, spacy_en)
 
-
-    dataset = datasets.load_dataset("wmt16", "de-en", split="train[:1%]+test[:1%]+validation[:1%]")
-    dataset = dataset.map(prepare_data)
-    dataset = dataset.remove_columns("translation")
+    dataset = TranslationDataset(language_pair="de-en", split="train[:1%]+test[:1%]+validation[:1%]")
     print("Building German Vocabulary ...")
     vocab_src = build_vocab_from_iterator(
         yield_tokens(dataset, tokenize_de, index=0),
@@ -89,8 +80,8 @@ def load_vocab(spacy_de, spacy_en):
 
 def create_dataloaders(
     device,
-    vocab_src,
-    vocab_tgt,
+    vocab_src: Vocab,
+    vocab_tgt: Vocab,
     spacy_de,
     spacy_en,
     batch_size=12000,
@@ -115,18 +106,15 @@ def create_dataloaders(
             max_padding=max_padding,
             pad_id=vocab_src.get_stoi()["<blank>"],
         )
+
     train_data = datasets.load_dataset("wmt16", "de-en", split="train[:1%]")
     val_data = datasets.load_dataset("wmt16", "de-en", split="validation[:1%]")
     # train_iter, valid_iter, test_iter = datasets.Multi30k(language_pair=("de", "en"))
 
     # train_iter_map = to_map_style_dataset(train_iter)  # DistributedSampler needs a dataset len()
-    train_sampler = (
-        DistributedSampler(train_data) if is_distributed else None
-    )
+    train_sampler = DistributedSampler(train_data) if is_distributed else None
     # valid_iter_map = to_map_style_dataset(valid_iter)
-    valid_sampler = (
-        DistributedSampler(val_data) if is_distributed else None
-    )
+    valid_sampler = DistributedSampler(val_data) if is_distributed else None
 
     train_dataloader = DataLoader(
         train_data,
@@ -146,5 +134,7 @@ def create_dataloaders(
 
 
 if __name__ == "__main__":
+    dataset = TranslationDataset(split="validation[:1%]", language_pair="de-en")
     spacy_de, spacy_en = load_tokenizers()
     vocab_src, vocab_tgt = load_vocab(spacy_de, spacy_en)
+    print("end")

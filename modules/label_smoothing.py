@@ -1,5 +1,5 @@
-import torch.nn as nn
 import torch
+import torch.nn as nn
 
 
 class LabelSmoothing(nn.Module):
@@ -25,5 +25,3 @@ class LabelSmoothing(nn.Module):
             true_dist.index_fill_(0, mask.squeeze(), 0.0)
         self.true_dist = true_dist
         return self.criterion(x, true_dist.clone().detach())
-
-

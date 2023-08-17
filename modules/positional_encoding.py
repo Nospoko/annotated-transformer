@@ -1,8 +1,9 @@
-import torch.nn as nn
-import torch
 import math
+
+import torch
 import pandas as pd
 import altair as alt
+import torch.nn as nn
 
 
 class PositionalEncoding(nn.Module):
@@ -15,9 +16,7 @@ class PositionalEncoding(nn.Module):
         # Compute the positional encodings once in log space.
         pe = torch.zeros(max_len, d_model)
         position = torch.arange(0, max_len).unsqueeze(1)
-        div_term = torch.exp(
-            torch.arange(0, d_model, 2) * -(math.log(10000.0) / d_model)
-        )
+        div_term = torch.exp(torch.arange(0, d_model, 2) * -(math.log(10000.0) / d_model))
         pe[:, 0::2] = torch.sin(position * div_term)
         pe[:, 1::2] = torch.cos(position * div_term)
         pe = pe.unsqueeze(0)
@@ -46,11 +45,7 @@ def example_positional():
     )
 
     return (
-        alt.Chart(data)
-        .mark_line()
-        .properties(width=800)
-        .encode(x="position", y="embedding", color="dimension:N")
-        .interactive()
+        alt.Chart(data).mark_line().properties(width=800).encode(x="position", y="embedding", color="dimension:N").interactive()
     )
 
 

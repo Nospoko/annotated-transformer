@@ -1,7 +1,9 @@
+import math
+
 import torch
 import torch.nn as nn
+
 from modules.layers import clones
-import math
 
 
 def attention(query, key, value, mask=None, dropout=None):
@@ -37,21 +39,14 @@ class MultiHeadedAttention(nn.Module):
 
         # 1) Do all the linear projections in batch from d_model => h x d_k
         query, key, value = [
-            lin(x).view(nbatches, -1, self.h, self.d_k).transpose(1, 2)
-            for lin, x in zip(self.linears, (query, key, value))
+            lin(x).view(nbatches, -1, self.h, self.d_k).transpose(1, 2) for lin, x in zip(self.linears, (query, key, value))
         ]
 
         # 2) Apply attention on all the projected vectors in batch.
-        x, self.attn = attention(
-            query, key, value, mask=mask, dropout=self.dropout
-        )
+        x, self.attn = attention(query, key, value, mask=mask, dropout=self.dropout)
 
         # 3) "Concat" using a view and apply a final linear.
-        x = (
-            x.transpose(1, 2)
-            .contiguous()
-            .view(nbatches, -1, self.h * self.d_k)
-        )
+        x = x.transpose(1, 2).contiguous().view(nbatches, -1, self.h * self.d_k)
         del query
         del key
         del value

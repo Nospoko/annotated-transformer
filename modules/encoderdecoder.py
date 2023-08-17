@@ -1,9 +1,10 @@
-import torch.nn as nn
-from torch.nn.functional import log_softmax
 import torch
 import pandas as pd
 import altair as alt
-alt.renderers.enable('altair_viewer')
+import torch.nn as nn
+from torch.nn.functional import log_softmax
+
+alt.renderers.enable("altair_viewer")
 
 
 class EncoderDecoder(nn.Module):
@@ -45,9 +46,7 @@ class Generator(nn.Module):
 def subsequent_mask(size):
     """Mask out subsequent positions."""
     attn_shape = (1, size, size)
-    subsequent_mask = torch.triu(torch.ones(attn_shape), diagonal=1).type(
-        torch.uint8
-    )
+    subsequent_mask = torch.triu(torch.ones(attn_shape), diagonal=1).type(torch.uint8)
     return subsequent_mask == 0
 
 

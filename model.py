@@ -1,18 +1,18 @@
-import torch.nn as nn
-import torch
 import copy
-from modules.attention import MultiHeadedAttention
+
+import torch
+import torch.nn as nn
+
+from modules.embeddings import Embeddings
 from modules.fnn import PositionwiseFeedForward
-from modules.positional_encoding import PositionalEncoding
-from modules.encoderdecoder import EncoderDecoder, Generator, subsequent_mask
 from modules.decoder import Decoder, DecoderLayer
 from modules.encoder import Encoder, EncoderLayer
-from modules.embeddings import Embeddings
+from modules.attention import MultiHeadedAttention
+from modules.positional_encoding import PositionalEncoding
+from modules.encoderdecoder import Generator, EncoderDecoder, subsequent_mask
 
 
-def make_model(
-    src_vocab, tgt_vocab, n=6, d_model=512, d_ff=2048, h=8, dropout=0.1
-):
+def make_model(src_vocab, tgt_vocab, n=6, d_model=512, d_ff=2048, h=8, dropout=0.1):
     "Helper: Construct a model from hyperparameters."
     c = copy.deepcopy
     attn = MultiHeadedAttention(h, d_model)
@@ -44,15 +44,11 @@ def inference_test():
     ys = torch.zeros(1, 1).type_as(src)
 
     for i in range(9):
-        out = test_model.decode(
-            memory, src_mask, ys, subsequent_mask(ys.size(1)).type_as(src.data)
-        )
+        out = test_model.decode(memory, src_mask, ys, subsequent_mask(ys.size(1)).type_as(src.data))
         prob = test_model.generator(out[:, -1])
         _, next_word = torch.max(prob, dim=1)
         next_word = next_word.data[0]
-        ys = torch.cat(
-            [ys, torch.empty(1, 1).type_as(src.data).fill_(next_word)], dim=1
-        )
+        ys = torch.cat([ys, torch.empty(1, 1).type_as(src.data).fill_(next_word)], dim=1)
 
     print("Example Untrained Model Prediction:", ys)
 

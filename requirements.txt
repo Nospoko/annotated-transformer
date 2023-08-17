@@ -1,0 +1,7 @@
+torch~=2.0.1
+datasets~=2.14.4
+spacy~=3.6.1
+torchtext~=0.15.2
+pandas~=2.0.3
+altair~=4.2.2
+GPUtil~=1.4.0

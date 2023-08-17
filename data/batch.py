@@ -1,6 +1,8 @@
-from modules.encoderdecoder import subsequent_mask
 import torch
 from torch.nn.functional import pad
+
+from modules.encoderdecoder import subsequent_mask
+
 
 class Batch:
     """Object for holding a batch of data with mask during training."""
@@ -18,9 +20,7 @@ class Batch:
     def make_std_mask(tgt, pad):
         "Create a mask to hide padding and future words."
         tgt_mask = (tgt != pad).unsqueeze(-2)
-        tgt_mask = tgt_mask & subsequent_mask(tgt.size(-1)).type_as(
-            tgt_mask.data
-        )
+        tgt_mask = tgt_mask & subsequent_mask(tgt.size(-1)).type_as(tgt_mask.data)
         return tgt_mask
 
 
@@ -38,7 +38,7 @@ def collate_batch(
     bs_id = torch.tensor([0], device=device)  # <s> token id
     eos_id = torch.tensor([1], device=device)  # </s> token id
     src_list, tgt_list = [], []
-    for (_src, _tgt) in batch:
+    for _src, _tgt in batch:
         processed_src = torch.cat(
             [
                 bs_id,
