@@ -4,6 +4,8 @@ import altair as alt
 import torch.nn as nn
 from torch.nn.functional import log_softmax
 
+import modules.encoder
+
 alt.renderers.enable("altair_viewer")
 
 
@@ -13,7 +15,7 @@ class EncoderDecoder(nn.Module):
     other models.
     """
 
-    def __init__(self, encoder, decoder, src_embed, tgt_embed, generator):
+    def __init__(self, encoder: nn.Module, decoder: nn.Module, src_embed: nn.Module, tgt_embed: nn.Module, generator: nn.Module):
         super(EncoderDecoder, self).__init__()
         self.encoder = encoder
         self.decoder = decoder

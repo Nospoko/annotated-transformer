@@ -7,7 +7,7 @@ import torch.nn as nn
 class LayerNorm(nn.Module):
     """Construct a layernorm module (See citation for details)."""
 
-    def __init__(self, features, eps=1e-6):
+    def __init__(self, features: int, eps=1e-6):
         super(LayerNorm, self).__init__()
         self.a_2 = nn.Parameter(torch.ones(features))
         self.b_2 = nn.Parameter(torch.zeros(features))
@@ -25,7 +25,7 @@ class SublayerConnection(nn.Module):
     Note for code simplicity the norm is first as opposed to last.
     """
 
-    def __init__(self, size, dropout):
+    def __init__(self, size: int, dropout: float):
         super(SublayerConnection, self).__init__()
         self.norm = LayerNorm(size)
         self.dropout = nn.Dropout(dropout)

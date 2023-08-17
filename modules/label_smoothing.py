@@ -5,7 +5,7 @@ import torch.nn as nn
 class LabelSmoothing(nn.Module):
     "Implement label smoothing."
 
-    def __init__(self, size, padding_idx, smoothing=0.0):
+    def __init__(self, size: int, padding_idx: int, smoothing=0.0):
         super(LabelSmoothing, self).__init__()
         self.criterion = nn.KLDivLoss(reduction="sum")
         self.padding_idx = padding_idx

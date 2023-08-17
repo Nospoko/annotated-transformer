@@ -44,7 +44,7 @@ def build_vocabulary(spacy_de, spacy_en):
     def tokenize_en(text):
         return tokenize(text, spacy_en)
 
-    dataset = TranslationDataset(language_pair="de-en", split="train[:5%]+test[:5%]+validation[:5%]")
+    dataset = TranslationDataset(language_pair="de-en", split="train[:1%]+test[:1%]+validation[:1%]")
     print("Building German Vocabulary ...")
     vocab_src = build_vocab_from_iterator(
         yield_tokens(dataset, tokenize_de, index=0),
@@ -84,7 +84,6 @@ def create_dataloaders(
     spacy_en,
     batch_size=12000,
     max_padding=128,
-    is_distributed=True,
 ):
     # def create_dataloaders(batch_size=12000):
     def tokenize_de(text):
@@ -104,27 +103,19 @@ def create_dataloaders(
             pad_id=vocab_src.get_stoi()["<blank>"],
         )
 
-    train_data = TranslationDataset(split="train[:5%]", language_pair="de-en")
-    val_data = TranslationDataset(split="validation[:5%]", language_pair="de-en")
-    # train_iter, valid_iter, test_iter = datasets.Multi30k(language_pair=("de", "en"))
-
-    # train_iter_map = to_map_style_dataset(train_iter)  # DistributedSampler needs a dataset len()
-    train_sampler = DistributedSampler(train_data) if is_distributed else None
-    # valid_iter_map = to_map_style_dataset(valid_iter)
-    valid_sampler = DistributedSampler(val_data) if is_distributed else None
+    train_data = TranslationDataset(split="train[:1%]", language_pair="de-en")
+    val_data = TranslationDataset(split="validation[:1%]", language_pair="de-en")
 
     train_dataloader = DataLoader(
         train_data,
         batch_size=batch_size,
-        shuffle=(train_sampler is None),
-        sampler=train_sampler,
+        shuffle=True,
         collate_fn=collate_fn,
     )
     valid_dataloader = DataLoader(
         val_data,
         batch_size=batch_size,
-        shuffle=(valid_sampler is None),
-        sampler=valid_sampler,
+        shuffle=True,
         collate_fn=collate_fn,
     )
     return train_dataloader, valid_dataloader
@@ -132,7 +123,7 @@ def create_dataloaders(
 
 if __name__ == "__main__":
     dataset = TranslationDataset(split="validation[:1%]", language_pair="de-en")
-    print(dataset[4].values())
+    # print(dataset[4].values())
     spacy_de, spacy_en = load_tokenizers()
     vocab_src, vocab_tgt = load_vocab(spacy_de, spacy_en)
     print("end")

@@ -1,0 +1,11 @@
+batch_size: 16
+distributed: False
+num_epochs: 8
+accum_iter: 10
+base_lr: 1.0
+max_padding: 72
+warmup: 3000
+file_prefix: "wmt16_model_"
+model_path: "wmt16_model_final.pt"
+run: "tests"
+data_slice: "1%"

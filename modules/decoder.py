@@ -1,26 +1,27 @@
+import torch
 import torch.nn as nn
 
-from modules.layers import LayerNorm, SublayerConnection, clones
+from modules.layer_utils import LayerNorm, SublayerConnection, clones
 
 
 class Decoder(nn.Module):
     """Generic N layer decoder with masking."""
 
-    def __init__(self, layer, N):
+    def __init__(self, layer, n):
         super(Decoder, self).__init__()
-        self.layers = clones(layer, N)
+        self.layers = clones(layer, n)
         self.norm = LayerNorm(layer.size)
 
-    def forward(self, x, memory, src_mask, tgt_mask):
+    def forward(self, x: torch.Tensor, memory, src_mask, tgt_mask):
         for layer in self.layers:
             x = layer(x, memory, src_mask, tgt_mask)
         return self.norm(x)
 
 
 class DecoderLayer(nn.Module):
-    """Decoder is made of self-attn, src-attn, and feed forward (defined below)"""
+    """Decoder is made of self-attn, src-attn, and feed forward"""
 
-    def __init__(self, size, self_attn, src_attn, feed_forward, dropout):
+    def __init__(self, size: int, self_attn: nn.Module, src_attn: nn.Module, feed_forward: nn.Module, dropout: float):
         super(DecoderLayer, self).__init__()
         self.size = size
         self.self_attn = self_attn
@@ -28,7 +29,7 @@ class DecoderLayer(nn.Module):
         self.feed_forward = feed_forward
         self.sublayer = clones(SublayerConnection(size, dropout), 3)
 
-    def forward(self, x, memory, src_mask, tgt_mask):
+    def forward(self, x: torch.Tensor, memory, src_mask, tgt_mask):
         """Follow Figure 1 (right) for connections."""
         m = memory
         x = self.sublayer[0](x, lambda x: self.self_attn(x, x, x, tgt_mask))

@@ -2,3 +2,5 @@
 *__pycache__*
 vocab.pt
 wandb/*
+models/*
+outputs/*
