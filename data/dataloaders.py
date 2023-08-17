@@ -3,7 +3,6 @@ from os.path import exists
 
 import spacy
 import torch
-import datasets
 from torch.utils.data import DataLoader
 from torchtext.vocab.vocab import Vocab
 from torchtext.vocab import build_vocab_from_iterator
@@ -107,8 +106,8 @@ def create_dataloaders(
             pad_id=vocab_src.get_stoi()["<blank>"],
         )
 
-    train_data = datasets.load_dataset("wmt16", "de-en", split="train[:1%]")
-    val_data = datasets.load_dataset("wmt16", "de-en", split="validation[:1%]")
+    train_data = TranslationDataset(split="train[:1%]", language_pair="de-en")
+    val_data = TranslationDataset(split="validation[:1%]", language_pair="de-en")
     # train_iter, valid_iter, test_iter = datasets.Multi30k(language_pair=("de", "en"))
 
     # train_iter_map = to_map_style_dataset(train_iter)  # DistributedSampler needs a dataset len()
@@ -135,6 +134,7 @@ def create_dataloaders(
 
 if __name__ == "__main__":
     dataset = TranslationDataset(split="validation[:1%]", language_pair="de-en")
+    print(dataset[4].values())
     spacy_de, spacy_en = load_tokenizers()
     vocab_src, vocab_tgt = load_vocab(spacy_de, spacy_en)
     print("end")
