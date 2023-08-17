@@ -10,7 +10,7 @@ class TranslationDataset:
     def _build(self):
         self.samples = []
         for row in self.dataset:
-            self.samples.append(list(row.values())[0].values())
+            self.samples.append(list(row.values())[0])
 
     def __len__(self):
         return len(self.samples)
