@@ -44,7 +44,7 @@ def build_vocabulary(spacy_de, spacy_en):
     def tokenize_en(text):
         return tokenize(text, spacy_en)
 
-    dataset = TranslationDataset(language_pair="de-en", split="train[:1%]+test[:1%]+validation[:1%]")
+    dataset = TranslationDataset(language_pair="de-en", split="train[:5%]+test[:5%]+validation[:5%]")
     print("Building German Vocabulary ...")
     vocab_src = build_vocab_from_iterator(
         yield_tokens(dataset, tokenize_de, index=0),
@@ -104,8 +104,8 @@ def create_dataloaders(
             pad_id=vocab_src.get_stoi()["<blank>"],
         )
 
-    train_data = TranslationDataset(split="train[:1%]", language_pair="de-en")
-    val_data = TranslationDataset(split="validation[:1%]", language_pair="de-en")
+    train_data = TranslationDataset(split="train[:5%]", language_pair="de-en")
+    val_data = TranslationDataset(split="validation[:5%]", language_pair="de-en")
     # train_iter, valid_iter, test_iter = datasets.Multi30k(language_pair=("de", "en"))
 
     # train_iter_map = to_map_style_dataset(train_iter)  # DistributedSampler needs a dataset len()

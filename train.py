@@ -4,7 +4,7 @@ from os.path import exists
 import torch
 import torchtext.vocab.vocab
 from torch.optim.lr_scheduler import LambdaLR
-
+import wandb
 from data.batch import Batch
 from model import make_model
 from dummies import DummyOptimizer, DummyScheduler
@@ -59,6 +59,8 @@ def train_worker(
     config,
     is_distributed=False,
 ):
+    wandb.init(project="transformer",
+               name="first")
     pad_idx = vocab_tgt["<blank>"]
     d_model = 512
     model = make_model(len(vocab_src), len(vocab_tgt), n=6)
@@ -87,7 +89,7 @@ def train_worker(
 
         model.train()
         print(f"Epoch {epoch} Training ====", flush=True)
-        _, train_state = run_epoch(
+        t_loss, train_state = run_epoch(
             (Batch(b[0], b[1], pad_idx) for b in train_dataloader),
             model,
             SimpleLossCompute(module.generator, criterion),
@@ -112,6 +114,7 @@ def train_worker(
             mode="eval",
         )
         print(sloss)
+        wandb.log({"val/loss": sloss, "train/loss": t_loss})
 
     file_path = "%sfinal.pt" % config["file_prefix"]
     torch.save(module.state_dict(), file_path)
@@ -172,6 +175,7 @@ def run_epoch(
                 ("Epoch Step: %6d | Accumulation Step: %3d | Loss: %6.2f " + "| Tokens / Sec: %7.1f | Learning Rate: %6.1e")
                 % (i, n_accum, loss / batch.ntokens, tokens / elapsed, lr)
             )
+            wandb.log({"train_step/loss": loss/batch.ntokens})
             start = time.time()
             tokens = 0
         del loss
