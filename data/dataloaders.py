@@ -78,7 +78,6 @@ def load_vocab(spacy_de, spacy_en):
 
 
 def create_dataloaders(
-    device,
     vocab_src: Vocab,
     vocab_tgt: Vocab,
     spacy_de,
@@ -101,7 +100,6 @@ def create_dataloaders(
             tokenize_en,
             vocab_src,
             vocab_tgt,
-            device,
             max_padding=max_padding,
             pad_id=vocab_src.get_stoi()["<blank>"],
         )

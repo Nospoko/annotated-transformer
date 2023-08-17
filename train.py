@@ -1,14 +1,9 @@
-import os
 import time
 from os.path import exists
 
 import torch
-import GPUtil
 import torchtext.vocab.vocab
-import torch.distributed as dist
-import torch.multiprocessing as mp
 from torch.optim.lr_scheduler import LambdaLR
-from torch.nn.parallel import DistributedDataParallel as DDP
 
 from data.batch import Batch
 from model import make_model
@@ -30,29 +25,13 @@ class TrainState:
     tokens: int = 0  # total # of tokens processed
 
 
-def train_distributed_model(vocab_src, vocab_tgt, spacy_de, spacy_en, config):
-    ngpus = torch.cuda.device_count()
-    os.environ["MASTER_ADDR"] = "localhost"
-    os.environ["MASTER_PORT"] = "12356"
-    print(f"Number of GPUs detected: {ngpus}")
-    print("Spawning training processes ...")
-    mp.spawn(
-        train_worker,
-        nprocs=ngpus,
-        args=(ngpus, vocab_src, vocab_tgt, spacy_de, spacy_en, config, True),
-    )
-
-
 def train_model(vocab_src: torchtext.vocab.Vocab, vocab_tgt: torchtext.vocab.Vocab, spacy_de, spacy_en, config):
-    if config["distributed"]:
-        train_distributed_model(vocab_src, vocab_tgt, spacy_de, spacy_en, config)
-    else:
-        train_worker(0, 1, vocab_src, vocab_tgt, spacy_de, spacy_en, config, False)
+    train_worker(vocab_src, vocab_tgt, spacy_de, spacy_en, config, False)
 
 
 def load_trained_model():
     config = {
-        "batch_size": 32,
+        "batch_size": 8,
         "distributed": False,
         "num_epochs": 8,
         "accum_iter": 10,
@@ -73,8 +52,6 @@ def load_trained_model():
 
 
 def train_worker(
-    gpu,
-    ngpus_per_node,
     vocab_src,
     vocab_tgt,
     spacy_de,
@@ -86,20 +63,13 @@ def train_worker(
     d_model = 512
     model = make_model(len(vocab_src), len(vocab_tgt), n=6)
     module = model
-    if is_distributed:
-        dist.init_process_group("nccl", init_method="env://", rank=gpu, world_size=ngpus_per_node)
-        model = DDP(model, device_ids=[gpu])
-        module = model.module
-        is_main_process = gpu == 0
     criterion = LabelSmoothing(size=len(vocab_tgt), padding_idx=pad_idx, smoothing=0.1)
-    criterion.cuda(gpu)
     train_dataloader, valid_dataloader = create_dataloaders(
-        gpu,
         vocab_src,
         vocab_tgt,
         spacy_de,
         spacy_en,
-        batch_size=config["batch_size"] // ngpus_per_node,
+        batch_size=config["batch_size"],
         max_padding=config["max_padding"],
         is_distributed=is_distributed,
     )
@@ -116,7 +86,7 @@ def train_worker(
             valid_dataloader.sampler.set_epoch(epoch)
 
         model.train()
-        print(f"[GPU{gpu}] Epoch {epoch} Training ====", flush=True)
+        print(f"Epoch {epoch} Training ====", flush=True)
         _, train_state = run_epoch(
             (Batch(b[0], b[1], pad_idx) for b in train_dataloader),
             model,
@@ -128,13 +98,10 @@ def train_worker(
             train_state=train_state,
         )
 
-        GPUtil.showUtilization()
-        if is_main_process:
-            file_path = "%s%.2d.pt" % (config["file_prefix"], epoch)
-            torch.save(module.state_dict(), file_path)
-        torch.cuda.empty_cache()
+        file_path = "%s%.2d.pt" % (config["file_prefix"], epoch)
+        torch.save(module.state_dict(), file_path)
 
-        print(f"[GPU{gpu}] Epoch {epoch} Validation ====", flush=True)
+        print(f"Epoch {epoch} Validation ====", flush=True)
         model.eval()
         sloss = run_epoch(
             (Batch(b[0], b[1], pad_idx) for b in valid_dataloader),
@@ -145,11 +112,9 @@ def train_worker(
             mode="eval",
         )
         print(sloss)
-        torch.cuda.empty_cache()
 
-    if is_main_process:
-        file_path = "%sfinal.pt" % config["file_prefix"]
-        torch.save(module.state_dict(), file_path)
+    file_path = "%sfinal.pt" % config["file_prefix"]
+    torch.save(module.state_dict(), file_path)
 
 
 class SimpleLossCompute:
