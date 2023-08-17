@@ -34,7 +34,7 @@ def tokenize(text, tokenizer):
 
 def yield_tokens(data_iter, tokenizer, index):
     for from_to in data_iter:
-        yield tokenizer(tuple(from_to.values())[index])
+        yield tokenizer(from_to[index])
 
 
 def build_vocabulary(spacy_de, spacy_en):
