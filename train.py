@@ -145,8 +145,10 @@ def train_epoch(
     total_loss = 0
     tokens = 0
     n_accum = 0
-    pbar = tqdm(enumerate(data_iter))
-    for i, batch in pbar:
+    i = 0
+    pbar = tqdm(data_iter)
+    for batch in pbar:
+
         out = model.forward(batch.src, batch.tgt, batch.src_mask, batch.tgt_mask)
         loss, loss_node = loss_compute(out, batch.tgt_y, batch.ntokens)
         loss_node.backward()
@@ -158,19 +160,20 @@ def train_epoch(
             optimizer.zero_grad(set_to_none=True)
             n_accum += 1
             train_state.accum_step += 1
+        i += 1
         scheduler.step()
-    total_loss += loss
-    total_tokens += batch.ntokens
-    tokens += batch.ntokens
-    if i % 40 == 1:
-        lr = optimizer.param_groups[0]["lr"]
-        elapsed = time.time() - start
-        loss = loss / batch.ntokens
-        tok_rate = tokens / elapsed
-        pbar.set_description(
-            f"Epoch Step: {i:6d} | Accumulation Step: {n_accum:3d} | Loss: {loss:6.2f} | Tokens / Sec {tok_rate:7.1f} | Learning Rate: {lr:6.1e}"
-        )
-        wandb.log({"train_steps/loss": loss / batch.ntokens})
+        total_loss += loss
+        total_tokens += batch.ntokens
+        tokens += batch.ntokens
+        if i % 2 == 1:
+            lr = optimizer.param_groups[0]["lr"]
+            elapsed = time.time() - start
+            loss = loss / batch.ntokens
+            tok_rate = tokens / elapsed
+            pbar.set_description(
+                f"Epoch Step: {i:6d} | Accumulation Step: {n_accum:3d} | Loss: {loss:6.2f} | Tokens / Sec {tok_rate:7.1f} | Learning Rate: {lr:6.1e}"
+            )
+            wandb.log({"train_steps/loss": loss / batch.ntokens})
         del loss
         del loss_node
     return total_loss / total_tokens, train_state
