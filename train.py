@@ -1,6 +1,5 @@
 import time
 import uuid
-from os.path import exists
 from typing import Callable, Iterable
 
 import hydra
@@ -16,6 +15,7 @@ import wandb
 from data.batch import Batch
 from model import make_model
 from modules.label_smoothing import LabelSmoothing
+from utils import TrainState, SimpleLossCompute, rate
 from data.dataloaders import load_vocab, load_tokenizers, create_dataloaders
 
 
@@ -34,24 +34,6 @@ def main(cfg: DictConfig):
 
     # print a run_id of the model
     print(run_id)
-
-
-class TrainState:
-    """Track number of steps, examples, and tokens processed"""
-
-    step: int = 0  # Steps in the current epoch
-    accum_step: int = 0  # Number of gradient accumulation steps
-    samples: int = 0  # total # of examples used
-    tokens: int = 0  # total # of tokens processed
-
-
-def load_trained_model(cfg) -> tuple[nn.Module, str]:
-    # load tokenizers and vocab
-    spacy_de, spacy_en = load_tokenizers()
-    vocab_src, vocab_tgt = load_vocab(spacy_de, spacy_en, cfg.data_slice)
-    model, run_id = train_model(vocab_src, vocab_tgt, spacy_de, spacy_en, cfg)
-
-    return model, run_id
 
 
 def initialize_wandb(cfg: DictConfig) -> str:
@@ -139,19 +121,6 @@ def train_model(
     return model, run_id
 
 
-class SimpleLossCompute:
-    """A simple loss compute and train function."""
-
-    def __init__(self, generator, criterion):
-        self.generator = generator
-        self.criterion = criterion
-
-    def __call__(self, x, y, norm):
-        x = self.generator(x)
-        sloss = self.criterion(x.contiguous().view(-1, x.size(-1)), y.contiguous().view(-1)) / norm
-        return sloss.data * norm, sloss
-
-
 def train_epoch(
     data_iter: Iterable,
     model: nn.Module,
@@ -167,6 +136,7 @@ def train_epoch(
     tokens = 0
     n_accum = 0
     i = 0  # iteration counter
+
     # create progress bar
     pbar = tqdm(data_iter)
     for batch in pbar:
@@ -235,14 +205,6 @@ def val_epoch(
         del loss_node
     # Return average loss over all tokens and updated train state
     return total_loss / total_tokens, train_state
-
-
-def rate(step: int, model_size: int, factor: float, warmup: int) -> float:
-    # we have to default the step to 1 for LambdaLR function
-    # to avoid zero raising to negative power.
-    if step == 0:
-        step = 1
-    return factor * (model_size ** (-0.5) * min(step ** (-0.5), step * warmup ** (-1.5)))
 
 
 if __name__ == "__main__":
