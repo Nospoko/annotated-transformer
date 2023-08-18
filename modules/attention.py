@@ -12,7 +12,7 @@ def attention(
     key: torch.Tensor,
     value: torch.Tensor,
     mask: Optional[torch.Tensor] = None,
-    dropout: Optional[int] = None,
+    dropout: Optional[nn.Module] = None,
 ):
     """Compute 'Scaled Dot Product Attention'"""
     d_k = query.size(-1)

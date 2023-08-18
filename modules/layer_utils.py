@@ -5,7 +5,7 @@ import torch.nn as nn
 
 
 class LayerNorm(nn.Module):
-    """Construct a layernorm module (See citation for details)."""
+    """Construct a layernorm module."""
 
     def __init__(self, features: int, eps=1e-6):
         super(LayerNorm, self).__init__()

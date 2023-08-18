@@ -3,7 +3,7 @@ import torch.nn as nn
 
 
 class LabelSmoothing(nn.Module):
-    "Implement label smoothing."
+    """Implement label smoothing."""
 
     def __init__(self, size: int, padding_idx: int, smoothing=0.0):
         super(LabelSmoothing, self).__init__()

@@ -173,7 +173,7 @@ def train_epoch(
             pbar.set_description(
                 f"Epoch Step: {i:6d} | Accumulation Step: {n_accum:3d} | Loss: {loss:6.2f} | Tokens / Sec {tok_rate:7.1f} | Learning Rate: {lr:6.1e}"
             )
-            wandb.log({"train_steps/loss": loss / batch.ntokens})
+            wandb.log({"train_steps/loss": loss})
         del loss
         del loss_node
     return total_loss / total_tokens, train_state

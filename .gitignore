@@ -4,3 +4,4 @@ vocab.pt
 wandb/*
 models/*
 outputs/*
+vocab.pt
