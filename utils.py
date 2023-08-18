@@ -1,3 +1,7 @@
+from typing import Iterable
+
+import torch.nn as nn
+
 
 class TrainState:
     """Track number of steps, examples, and tokens processed"""
@@ -27,3 +31,10 @@ def rate(step: int, model_size: int, factor: float, warmup: int) -> float:
     if step == 0:
         step = 1
     return factor * (model_size ** (-0.5) * min(step ** (-0.5), step * warmup ** (-1.5)))
+
+
+def model_translations(model: nn.Module, test_data: Iterable):
+    """TODO: model translations"""
+    for batch in test_data:
+        out = model(batch.src, batch.tgt, batch.src_mask, batch.tgt_mask)
+        return {"tgt": batch.tgt, "out": out}

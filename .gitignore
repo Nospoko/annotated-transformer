@@ -5,3 +5,5 @@ wandb/*
 models/*
 outputs/*
 vocab.pt
+.*
+examples.py

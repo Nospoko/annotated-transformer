@@ -1,39 +1,14 @@
-import os
 from os.path import exists
 
 import spacy
 import torch
+from torch.nn.functional import pad
 from torch.utils.data import DataLoader
 from torchtext.vocab.vocab import Vocab
 from torchtext.vocab import build_vocab_from_iterator
+from tokenization import tokenize, yield_tokens, load_tokenizers
 
-from data.batch import collate_batch
 from data.dataset import TranslationDataset
-
-
-def load_tokenizers():
-    try:
-        spacy_de = spacy.load("de_core_news_sm")
-    except IOError:
-        os.system("python -m spacy download de_core_news_sm")
-        spacy_de = spacy.load("de_core_news_sm")
-
-    try:
-        spacy_en = spacy.load("en_core_web_sm")
-    except IOError:
-        os.system("python -m spacy download en_core_web_sm")
-        spacy_en = spacy.load("en_core_web_sm")
-
-    return spacy_de, spacy_en
-
-
-def tokenize(text, tokenizer):
-    return [tok.text for tok in tokenizer.tokenizer(text)]
-
-
-def yield_tokens(data_iter, tokenizer, index):
-    for from_to in data_iter:
-        yield tokenizer(from_to[index])
 
 
 def build_vocabulary(spacy_de, spacy_en, slice):
@@ -76,14 +51,54 @@ def load_vocab(spacy_de: spacy.Language, spacy_en: spacy.Language, slice: str):
     return vocab_src, vocab_tgt
 
 
-def create_dataloaders(
-    vocab_src: Vocab,
-    vocab_tgt: Vocab,
-    spacy_de,
-    spacy_en,
-    slice: str,
-    batch_size=12000,
+# code for evenly dividing torchtext data to batches
+def collate_batch(
+    batch,
+    src_tokens_fn,
+    tgt_tokens_fn,
+    src_vocab,
+    tgt_vocab,
     max_padding=128,
+    pad_id=2,
+):
+    bs_id = torch.tensor([0])  # <s> token id
+    eos_id = torch.tensor([1])  # </s> token id
+    src_list, tgt_list = [], []
+    for _src, _tgt in batch:
+        processed_src = torch.cat(
+            [bs_id, torch.tensor(src_vocab(src_tokens_fn(_src)), dtype=torch.int64), eos_id],
+            0,
+        )
+        processed_tgt = torch.cat(
+            [bs_id, torch.tensor(tgt_vocab(tgt_tokens_fn(_tgt)), dtype=torch.int64), eos_id],
+            0,
+        )
+        # warning - overwrites values for negative values of padding - len
+        src_list.append(
+            pad(
+                processed_src,
+                (
+                    0,
+                    max_padding - len(processed_src),
+                ),
+                value=pad_id,
+            )
+        )
+        tgt_list.append(
+            pad(
+                processed_tgt,
+                (0, max_padding - len(processed_tgt)),
+                value=pad_id,
+            )
+        )
+
+    src = torch.stack(src_list)
+    tgt = torch.stack(tgt_list)
+    return (src, tgt)
+
+
+def create_dataloaders(
+    vocab_src: Vocab, vocab_tgt: Vocab, spacy_de, spacy_en, slice: str, batch_size=12000, max_padding=128, split_val="validation"
 ):
     # def create_dataloaders(batch_size=12000):
     def tokenize_de(text):
@@ -104,7 +119,7 @@ def create_dataloaders(
         )
 
     train_data = TranslationDataset(split=f"train[:{slice}]", language_pair="de-en")
-    val_data = TranslationDataset(split=f"validation[:{slice}]", language_pair="de-en")
+    val_data = TranslationDataset(split=f"{split_val}[:{slice}]", language_pair="de-en")
 
     train_dataloader = DataLoader(
         train_data,
@@ -122,8 +137,35 @@ def create_dataloaders(
 
 
 if __name__ == "__main__":
-    dataset = TranslationDataset(split="validation[:1%]", language_pair="de-en")
-    # print(dataset[4].values())
+
+    def tokenize_de(text):
+        return tokenize(text, spacy_de)
+
+    def tokenize_en(text):
+        return tokenize(text, spacy_en)
+
+    dataset = TranslationDataset(split="validation[:5]", language_pair="de-en")
     spacy_de, spacy_en = load_tokenizers()
     vocab_src, vocab_tgt = load_vocab(spacy_de, spacy_en, "1%")
-    print("end")
+    train_data, vel_data = create_dataloaders(vocab_src, vocab_tgt, spacy_de, spacy_en, batch_size=16, slice="5")
+    batch = None
+    index = torch.randint(0, len(dataset), [1])
+    print(index)
+    src = dataset[index][0]
+    tgt = dataset[index][1]
+    bs_id = torch.tensor([0])  # <s> token id
+    eos_id = torch.tensor([1])  # </s> token id
+    tokenized = tokenize_de(src)
+    coded = vocab_src(tokenized)
+    processed_src = torch.cat(
+        [bs_id, torch.tensor(coded, dtype=torch.int64), eos_id],
+        0,
+    )
+    print(f"Source:\n{src}\ntokenized: {tokenized}\nencoded in vocabulary: {coded}\ntensor: {processed_src}")
+    tokenized = tokenize_en(tgt)
+    coded = vocab_tgt(tokenized)
+    processed_tgt = torch.cat(
+        [bs_id, torch.tensor(coded, dtype=torch.int64), eos_id],
+        0,
+    )
+    print(f"Target:\n{tgt}\ntokenized: {tokenized}\nencoded in vocabulary: {coded}\ntensor: {processed_src}")

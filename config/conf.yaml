@@ -10,3 +10,6 @@ model_path: "wmt16_model_final.pt"
 run: "tests"
 project: "transformer"
 data_slice: "1%"
+run_id: "70b7c4f6"
+examples:
+  data_slice: "1%"

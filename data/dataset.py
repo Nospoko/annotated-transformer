@@ -17,3 +17,8 @@ class TranslationDataset:
 
     def __getitem__(self, idx: int):
         return self.samples[idx]
+
+
+if __name__ == "__main__":
+    dataset = TranslationDataset(split="train", language_pair="de-en")
+    print(len(dataset.dataset))

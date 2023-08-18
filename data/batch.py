@@ -1,6 +1,3 @@
-import torch
-from torch.nn.functional import pad
-
 from modules.encoderdecoder import subsequent_mask
 
 
@@ -18,67 +15,7 @@ class Batch:
 
     @staticmethod
     def make_std_mask(tgt, pad):
-        "Create a mask to hide padding and future words."
+        """Create a mask to hide padding and future words."""
         tgt_mask = (tgt != pad).unsqueeze(-2)
         tgt_mask = tgt_mask & subsequent_mask(tgt.size(-1)).type_as(tgt_mask.data)
         return tgt_mask
-
-
-# code for evenly dividing torchtext data to batches
-def collate_batch(
-    batch,
-    src_pipeline,
-    tgt_pipeline,
-    src_vocab,
-    tgt_vocab,
-    max_padding=128,
-    pad_id=2,
-):
-    bs_id = torch.tensor([0])  # <s> token id
-    eos_id = torch.tensor([1])  # </s> token id
-    src_list, tgt_list = [], []
-    for _src, _tgt in batch:
-        processed_src = torch.cat(
-            [
-                bs_id,
-                torch.tensor(
-                    src_vocab(src_pipeline(_src)),
-                    dtype=torch.int64,
-                ),
-                eos_id,
-            ],
-            0,
-        )
-        processed_tgt = torch.cat(
-            [
-                bs_id,
-                torch.tensor(
-                    tgt_vocab(tgt_pipeline(_tgt)),
-                    dtype=torch.int64,
-                ),
-                eos_id,
-            ],
-            0,
-        )
-        src_list.append(
-            # warning - overwrites values for negative values of padding - len
-            pad(
-                processed_src,
-                (
-                    0,
-                    max_padding - len(processed_src),
-                ),
-                value=pad_id,
-            )
-        )
-        tgt_list.append(
-            pad(
-                processed_tgt,
-                (0, max_padding - len(processed_tgt)),
-                value=pad_id,
-            )
-        )
-
-    src = torch.stack(src_list)
-    tgt = torch.stack(tgt_list)
-    return (src, tgt)
