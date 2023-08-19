@@ -6,9 +6,9 @@ from torch.nn.functional import pad
 from torch.utils.data import DataLoader
 from torchtext.vocab.vocab import Vocab
 from torchtext.vocab import build_vocab_from_iterator
-from tokenization import tokenize, yield_tokens, load_tokenizers
 
 from data.dataset import TranslationDataset
+from data.tokenization import tokenize, yield_tokens, load_tokenizers
 
 
 def build_vocabulary(spacy_de, spacy_en, slice):

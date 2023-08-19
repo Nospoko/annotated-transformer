@@ -93,11 +93,12 @@ def train_model(
 
         # Train model for one epoch
         t_loss, train_state = train_epoch(
-            (Batch(b[0], b[1], pad_idx) for b in train_dataloader),
+            train_dataloader,
             model,
             SimpleLossCompute(module.generator, criterion),
             optimizer,
             lr_scheduler,
+            pad_idx,
             accum_iter=cfg["accum_iter"],
             train_state=train_state,
         )
@@ -127,6 +128,7 @@ def train_epoch(
     loss_compute: Callable,
     optimizer: torch.optim.Optimizer,
     scheduler: LambdaLR,
+    pad_idx: int,
     accum_iter=1,
     train_state=TrainState(),
 ) -> tuple[float, TrainState]:
@@ -139,7 +141,8 @@ def train_epoch(
 
     # create progress bar
     pbar = tqdm(data_iter)
-    for batch in pbar:
+    for b in pbar:  # for batch in dataloader
+        batch = Batch(b[0], b[1], pad_idx)
         out = model.forward(batch.src, batch.tgt, batch.src_mask, batch.tgt_mask)
 
         loss, loss_node = loss_compute(out, batch.tgt_y, batch.ntokens)
