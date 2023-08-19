@@ -2,6 +2,7 @@ from os.path import exists
 
 import spacy
 import torch
+import torchtext.vocab
 from torch.nn.functional import pad
 from torch.utils.data import DataLoader
 from torchtext.vocab.vocab import Vocab
@@ -11,7 +12,11 @@ from data.dataset import TranslationDataset
 from data.tokenization import tokenize, yield_tokens, load_tokenizers
 
 
-def build_vocabulary(spacy_de, spacy_en, slice):
+def build_vocabulary(
+    spacy_de: spacy.Language,
+    spacy_en: spacy.Language,
+    slice: str,
+) -> tuple[torchtext.vocab.Vocab, torchtext.vocab.Vocab]:
     def tokenize_de(text):
         return tokenize(text, spacy_de)
 
@@ -39,7 +44,11 @@ def build_vocabulary(spacy_de, spacy_en, slice):
     return vocab_src, vocab_tgt
 
 
-def load_vocab(spacy_de: spacy.Language, spacy_en: spacy.Language, slice: str):
+def load_vocab(
+    spacy_de: spacy.Language,
+    spacy_en: spacy.Language,
+    slice: str,
+) -> tuple[torchtext.vocab.Vocab, torchtext.vocab.Vocab]:
     if not exists("vocab.pt"):
         vocab_src, vocab_tgt = build_vocabulary(spacy_de, spacy_en, slice)
         torch.save((vocab_src, vocab_tgt), "vocab.pt")

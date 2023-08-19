@@ -1,6 +1,6 @@
 batch_size: 16
 distributed: False
-num_epochs: 2
+num_epochs: 3
 accum_iter: 10
 base_lr: 1.0
 max_padding: 72
