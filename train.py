@@ -189,7 +189,7 @@ def train_epoch(
         tokens += batch.ntokens
 
         # log metrics every 10 steps
-        if i % 1 == 0:
+        if i % 10 == 1:
             lr = optimizer.param_groups[0]["lr"]
             elapsed = time.time() - start
             tok_rate = tokens / elapsed
