@@ -35,7 +35,7 @@ def main(cfg: DictConfig):
         print("Source Text (Input)        : " + translations[idx]["src"])
         print("Target Text (Ground Truth) : " + translations[idx]["tgt"])
         print("Model Output               : " + translations[idx]["out"])
-        print("=======================================================================================================")
+        print("===========")
 
     return
 
