@@ -79,7 +79,8 @@ def train_model(
 
     # Set LabelSmoothing as a criterion for loss calculation
     criterion = LabelSmoothing(size=len(vocab_tgt), padding_idx=pad_idx, smoothing=0.1)
-    criterion.cuda(device)
+    if device != torch.device('cpu'):
+        criterion.cuda(device)
     # Create dataloaders
     train_dataloader, valid_dataloader = create_dataloaders(
         vocab_src,
