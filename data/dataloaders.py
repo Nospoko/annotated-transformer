@@ -107,7 +107,14 @@ def collate_batch(
 
 
 def create_dataloaders(
-    vocab_src: Vocab, vocab_tgt: Vocab, spacy_de, spacy_en, slice: str, batch_size=12000, max_padding=128, split_val="validation"
+    vocab_src: Vocab,
+    vocab_tgt: Vocab,
+    spacy_de: spacy.Language,
+    spacy_en: spacy.Language,
+    slice: str,
+    batch_size=12000,
+    max_padding=128,
+    split_val="validation",
 ):
     # def create_dataloaders(batch_size=12000):
     def tokenize_de(text):

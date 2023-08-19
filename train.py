@@ -5,6 +5,7 @@ from typing import Callable, Iterable
 import hydra
 import spacy
 import torch
+import einops
 import torch.nn as nn
 from tqdm import tqdm
 import torchtext.vocab.vocab
@@ -110,7 +111,7 @@ def train_model(
         )
 
         # Save checkpoint after each epoch
-        file_path = "models/%s-%s-%.2d.pt" % (cfg.file_prefix, run_id, epoch)
+        file_path = f"models/{cfg.file_prefix}-{run_id}-{epoch}.pt"
         torch.save(
             {
                 "model_state_dict": module.state_dict(),
@@ -157,7 +158,7 @@ def train_epoch(
         batch = Batch(b[0], b[1], pad_idx)
         encode_decode = model.forward(batch.src, batch.tgt, batch.src_mask, batch.tgt_mask)
         out = model.generator(encode_decode)
-        loss = criterion(out.contiguous().view(-1, out.size(-1)), batch.tgt_y.contiguous().view(-1)) / batch.ntokens
+        loss = criterion(einops.rearrange(out, "b n d -> (b n) d"), einops.rearrange(batch.tgt_y, "b n -> (b n)")) / batch.ntokens
         loss.backward()
 
         train_state.step += 1
@@ -181,7 +182,7 @@ def train_epoch(
         tokens += batch.ntokens
 
         # log metrics every 10 steps
-        if i % 10 == 1:
+        if i % 1 == 0:
             lr = optimizer.param_groups[0]["lr"]
             elapsed = time.time() - start
             tok_rate = tokens / elapsed
@@ -200,14 +201,17 @@ def val_epoch(
     model: nn.Module,
     criterion: Callable,
     train_state: TrainState,
+    pad_idx=2,
 ) -> tuple[float, TrainState]:
     total_tokens = 0
     total_loss = 0
     tokens = 0
-    for i, batch in enumerate(data_iter):
+
+    for b in tqdm(data_iter):
+        batch = Batch(b[0], b[1], pad_idx)
         encoded_decoded = model.forward(batch.src, batch.tgt, batch.src_mask, batch.tgt_mask)
         out = model.generator(encoded_decoded)
-        loss = criterion(out.contiguous().view(-1, out.size(-1)), batch.tgt_y.contiguous().view(-1))
+        loss = criterion(einops.rearrange(out, "b n d -> (b n) d"), einops.rearrange(batch.tgt_y, "b n -> (b n)")) / batch.ntokens
 
         total_loss += loss
         total_tokens += batch.ntokens

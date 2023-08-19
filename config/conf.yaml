@@ -6,7 +6,7 @@ base_lr: 1.0
 max_padding: 72
 warmup: 3000
 
-data_slice: "3%"
+data_slice: "4%"
 
 file_prefix: "wmt16_model_"
 model_path: "wmt16_model_final.pt"

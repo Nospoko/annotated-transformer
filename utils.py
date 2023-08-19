@@ -1,8 +1,12 @@
 from typing import Iterable
 
+import torch
+import torchtext
 import torch.nn as nn
+from tqdm import tqdm
 
 from data.batch import Batch
+from modules.encoderdecoder import subsequent_mask
 
 
 class TrainState:
@@ -22,9 +26,40 @@ def rate(step: int, model_size: int, factor: float, warmup: int) -> float:
     return factor * (model_size ** (-0.5) * min(step ** (-0.5), step * warmup ** (-1.5)))
 
 
-def model_translations(model: nn.Module, test_data: Iterable, pad_idx=2):
-    """TODO: model translations"""
-    for b in test_data:
+def translated_sentences(
+    valid_dataloader: Iterable,
+    model: nn.Module,
+    vocab_src: torchtext.vocab.Vocab,
+    vocab_tgt: torchtext.vocab.Vocab,
+    pad_idx=2,
+    n_examples=20,
+    eos_string="</s>",
+):
+    results = [()] * n_examples
+    for idx in tqdm(range(n_examples)):
+        b = next(iter(valid_dataloader))
         batch = Batch(b[0], b[1], pad_idx)
-        out = model(batch.src, batch.tgt, batch.src_mask, batch.tgt_mask)
-        return {"tgt": batch.tgt, "out": out}
+        src_tokens = [vocab_src.get_itos()[x] for x in batch.src[0] if x != pad_idx]
+        tgt_tokens = [vocab_tgt.get_itos()[x] for x in batch.tgt[0] if x != pad_idx]
+
+        model_out = greedy_decode(model, batch.src, batch.src_mask, 72, 0)[0]
+        model_txt = [vocab_tgt.get_itos()[x] for x in model_out if x != pad_idx]
+        results[idx] = {
+            "src": " ".join(src_tokens).replace("\n", ""),
+            "tgt": " ".join(tgt_tokens).replace("\n", ""),
+            "out": " ".join(model_txt).split(eos_string, 1)[0] + eos_string,
+        }
+    return results
+
+
+def greedy_decode(model, src, src_mask, max_len, start_symbol):
+    memory = model.encode(src, src_mask)
+    # Create a tensor and put start symbol inside
+    sentence = torch.Tensor([[start_symbol]]).type_as(src.data)
+    for i in range(max_len - 1):
+        out = model.decode(memory, src_mask, sentence, subsequent_mask(sentence.size(1)).type_as(src.data))
+        prob = model.generator(out[:, -1])
+        _, next_word = prob.max(dim=1)
+        next_word = next_word.data[0]
+        sentence = torch.cat([sentence, torch.Tensor([[next_word]]).type_as(src.data)], dim=1)
+    return sentence

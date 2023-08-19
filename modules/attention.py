@@ -2,6 +2,7 @@ import math
 from typing import Optional
 
 import torch
+import einops
 import torch.nn as nn
 
 from modules.layer_utils import clones
@@ -41,18 +42,17 @@ class MultiHeadedAttention(nn.Module):
         if mask is not None:
             # Same mask applied to all h heads.
             mask = mask.unsqueeze(1)
-        nbatches = query.size(0)
-
         # 1) Do all the linear projections in batch from d_model => h x d_k
         query, key, value = [
-            lin(x).view(nbatches, -1, self.h, self.d_k).transpose(1, 2) for lin, x in zip(self.linears, (query, key, value))
+            einops.rearrange(lin(x), "b n (h d_k) -> b h n d_k", h=self.h, d_k=self.d_k)
+            for lin, x in zip(self.linears, (query, key, value))
         ]
 
         # 2) Apply attention on all the projected vectors in batch.
         x, self.attn = attention(query, key, value, mask=mask, dropout=self.dropout)
 
-        # 3) "Concat" using a view and apply a final linear.
-        x = x.transpose(1, 2).contiguous().view(nbatches, -1, self.h * self.d_k)
+        # 3) "Concat" and apply a final linear.
+        x = einops.rearrange(x, "b h n d_k -> b n (h d_k)")
         del query
         del key
         del value
