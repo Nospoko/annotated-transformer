@@ -67,6 +67,7 @@ def collate_batch(
     tgt_tokens_fn,
     src_vocab,
     tgt_vocab,
+    device=torch.device("cpu"),
     max_padding=128,
     pad_id=2,
 ):
@@ -75,11 +76,11 @@ def collate_batch(
     src_list, tgt_list = [], []
     for _src, _tgt in batch:
         processed_src = torch.cat(
-            [bs_id, torch.tensor(src_vocab(src_tokens_fn(_src)), dtype=torch.int64), eos_id],
+            [bs_id, torch.tensor(src_vocab(src_tokens_fn(_src)), dtype=torch.int64, device=device), eos_id],
             0,
         )
         processed_tgt = torch.cat(
-            [bs_id, torch.tensor(tgt_vocab(tgt_tokens_fn(_tgt)), dtype=torch.int64), eos_id],
+            [bs_id, torch.tensor(tgt_vocab(tgt_tokens_fn(_tgt)), dtype=torch.int64, device=device), eos_id],
             0,
         )
         # warning - overwrites values for negative values of padding - len
@@ -112,6 +113,7 @@ def create_dataloaders(
     spacy_de: spacy.Language,
     spacy_en: spacy.Language,
     slice: str,
+    device=torch.device("cpu"),
     batch_size=12000,
     max_padding=128,
     split_val="validation",
@@ -130,6 +132,7 @@ def create_dataloaders(
             tokenize_en,
             vocab_src,
             vocab_tgt,
+            device=device,
             max_padding=max_padding,
             pad_id=vocab_src.get_stoi()["<blank>"],
         )
