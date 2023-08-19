@@ -71,8 +71,8 @@ def collate_batch(
     max_padding=128,
     pad_id=2,
 ):
-    bs_id = torch.tensor([0])  # <s> token id
-    eos_id = torch.tensor([1])  # </s> token id
+    bs_id = torch.tensor([0], device=device)  # <s> token id
+    eos_id = torch.tensor([1], device=device)  # </s> token id
     src_list, tgt_list = [], []
     for _src, _tgt in batch:
         processed_src = torch.cat(

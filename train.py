@@ -25,9 +25,8 @@ def main(cfg: DictConfig):
     # load tokenizers and vocab
     spacy_de, spacy_en = load_tokenizers()
     vocab_src, vocab_tgt = load_vocab(spacy_de, spacy_en, cfg.data_slice)
-
     # Train a model
-    model, run_id = train_model(vocab_src, vocab_tgt, spacy_de, spacy_en, cfg)
+    model, run_id = train_model(vocab_src, vocab_tgt, spacy_de, spacy_en, cfg, device=cfg.device)
 
     # save weights to a file
     file_path = f"models/{cfg.file_prefix}-{run_id}-final.pt"
@@ -60,10 +59,10 @@ def train_model(
     spacy_de: spacy.Language,
     spacy_en: spacy.Language,
     cfg: DictConfig,
-    device=torch.device("cpu"),
+    device="cpu",
 ) -> tuple[nn.Module, str]:
     print(f"Train using {device}")
-    if device != torch.device("cpu"):
+    if device != "cpu":
         torch.cuda.set_device(device)
     run_id = initialize_wandb(cfg)
 
@@ -73,13 +72,14 @@ def train_model(
     # define model parameters and create the model
     d_model = 512
     model = make_model(len(vocab_src), len(vocab_tgt), n=6)
-    if device != torch.device("cpu"):
+    if device != "cpu":
         model.cuda(device)
     module = model
 
     # Set LabelSmoothing as a criterion for loss calculation
     criterion = LabelSmoothing(size=len(vocab_tgt), padding_idx=pad_idx, smoothing=0.1)
-    criterion.cuda(device)
+    if device != "cpu":
+        criterion.cuda(device)
     # Create dataloaders
     train_dataloader, valid_dataloader = create_dataloaders(
         vocab_src,
