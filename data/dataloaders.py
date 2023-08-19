@@ -148,22 +148,28 @@ if __name__ == "__main__":
     spacy_de, spacy_en = load_tokenizers()
     vocab_src, vocab_tgt = load_vocab(spacy_de, spacy_en, "1%")
     train_data, vel_data = create_dataloaders(vocab_src, vocab_tgt, spacy_de, spacy_en, batch_size=16, slice="5")
-    batch = None
+
     index = torch.randint(0, len(dataset), [1])
     print(index)
+
     src = dataset[index][0]
     tgt = dataset[index][1]
     bs_id = torch.tensor([0])  # <s> token id
     eos_id = torch.tensor([1])  # </s> token id
+
     tokenized = tokenize_de(src)
     coded = vocab_src(tokenized)
+
     processed_src = torch.cat(
         [bs_id, torch.tensor(coded, dtype=torch.int64), eos_id],
         0,
     )
+
     print(f"Source:\n{src}\ntokenized: {tokenized}\nencoded in vocabulary: {coded}\ntensor: {processed_src}")
+
     tokenized = tokenize_en(tgt)
     coded = vocab_tgt(tokenized)
+
     processed_tgt = torch.cat(
         [bs_id, torch.tensor(coded, dtype=torch.int64), eos_id],
         0,

@@ -1,15 +1,15 @@
 batch_size: 16
 distributed: False
-num_epochs: 8
+num_epochs: 2
 accum_iter: 10
 base_lr: 1.0
 max_padding: 72
 warmup: 3000
+
+data_slice: "3%"
+
 file_prefix: "wmt16_model_"
 model_path: "wmt16_model_final.pt"
 run: "tests"
 project: "transformer"
-data_slice: "1%"
 run_id: "70b7c4f6"
-examples:
-  data_slice: "1%"

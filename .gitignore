@@ -6,4 +6,3 @@ models/*
 outputs/*
 vocab.pt
 .*
-examples.py

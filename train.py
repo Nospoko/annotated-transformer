@@ -30,7 +30,13 @@ def main(cfg: DictConfig):
 
     # save weights to a file
     file_path = f"models/{cfg.file_prefix}-{run_id}-final.pt"
-    torch.save(model.state_dict(), file_path)
+    torch.save(
+        {
+            "model_state_dict": model.state_dict(),
+            "cfg": OmegaConf.to_container(cfg, resolve=True),
+        },
+        file_path,
+    )
 
     # print a run_id of the model
     print(run_id)
@@ -128,7 +134,7 @@ def train_epoch(
     loss_compute: Callable,
     optimizer: torch.optim.Optimizer,
     scheduler: LambdaLR,
-    pad_idx: int,
+    pad_idx=2,
     accum_iter=1,
     train_state=TrainState(),
 ) -> tuple[float, TrainState]:
@@ -180,8 +186,6 @@ def train_epoch(
 
             # log the loss each to Weights and Biases
             wandb.log({"train_steps/loss": loss})
-        del loss
-        del loss_node
     # Return average loss over all tokens and updated train state
     return total_loss / total_tokens, train_state
 
