@@ -27,7 +27,7 @@ def main(cfg: DictConfig):
     vocab_src, vocab_tgt = load_vocab(spacy_de, spacy_en, cfg.data_slice)
 
     # Train a model
-    model, run_id = train_model(vocab_src, vocab_tgt, spacy_de, spacy_en, cfg)
+    model, run_id = train_model(vocab_src, vocab_tgt, spacy_de, spacy_en, cfg, device=0)
 
     # save weights to a file
     file_path = f"models/{cfg.file_prefix}-{run_id}-final.pt"
