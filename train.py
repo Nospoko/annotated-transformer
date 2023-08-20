@@ -134,9 +134,10 @@ def train_model(
             file_path,
         )
         print(f"Epoch {epoch} Validation", flush=True)
+        torch.cuda.empty_cache()
         model.eval()
         # Evaluate the model on validation set
-        sloss, val_state = val_epoch(
+        sloss = val_epoch(
             train_dataloader,
             model,
             criterion,
