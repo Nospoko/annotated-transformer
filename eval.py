@@ -46,7 +46,7 @@ def load_checkpoint(run_id: str):
     # find path with desired run_id
     path = None
     for file in os.listdir("models"):
-        if file.find(f"{run_id}-06.pt"):
+        if file.find(f"{run_id}-final.pt"):
             path = file
         break
     if path is None:
