@@ -5,6 +5,8 @@ contextual relationships between words, enabling it to process sequences effecti
 It consists of an encoder and a decoder, each composed of stacked layers of self-attention 
 and feedforward neural networks. The architecture allows for capturing long-range dependencies 
 without the need for explicit sequential processing.
+![image](https://github.com/Nospoko/annotated-transformer/assets/74838859/b622628f-7b3d-4061-ae4d-4fcc7905aba6)
+
 ## Training
 You can train the model on 1% wmt16 dataset by running 
 ```shell
