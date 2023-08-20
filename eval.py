@@ -39,7 +39,7 @@ def main(cfg):
     criterion = LabelSmoothing(size=len(vocab_tgt), padding_idx=pad_idx, smoothing=0.1)
 
     loss = val_epoch(data_iter=test_dataloader, model=model, criterion=criterion)
-    print (f"Model loss:   {loss}")
+    print(f"Model loss:   {loss}")
 
 
 def load_checkpoint(run_id: str):
@@ -55,3 +55,7 @@ def load_checkpoint(run_id: str):
     path = "models/" + path
     checkpoint = torch.load(path)
     return checkpoint
+
+
+if __name__ == '__main__':
+    main()
