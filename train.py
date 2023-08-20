@@ -137,7 +137,7 @@ def train_model(
         model.eval()
         # Evaluate the model on validation set
         sloss, val_state = val_epoch(
-            (Batch(b[0], b[1], pad_idx) for b in valid_dataloader),
+            train_dataloader,
             model,
             criterion,
         )
