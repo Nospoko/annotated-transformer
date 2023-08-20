@@ -1,14 +1,14 @@
 ## Transformer
-Transformer is a deep learning model architecture designed for various natural language 
-processing tasks.At its core, the Transformer employs self-attention mechanisms to capture 
+Transformer is a deep learning model architecture designed for various natural language
+processing tasks.At its core, the Transformer employs self-attention mechanisms to capture
 contextual relationships between words, enabling it to process sequences effectively. </br>
-It consists of an encoder and a decoder, each composed of stacked layers of self-attention 
-and feedforward neural networks. The architecture allows for capturing long-range dependencies 
+It consists of an encoder and a decoder, each composed of stacked layers of self-attention
+and feedforward neural networks. The architecture allows for capturing long-range dependencies
 without the need for explicit sequential processing.
 ![image](https://github.com/Nospoko/annotated-transformer/assets/74838859/b622628f-7b3d-4061-ae4d-4fcc7905aba6)
 
 ## Training
-You can train the model on 1% wmt16 dataset by running 
+You can train the model on 1% wmt16 dataset by running
 ```shell
 pip install -r requirements.txt
 python3 train.py

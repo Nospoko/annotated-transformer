@@ -70,8 +70,15 @@ def train_model(
     pad_idx = vocab_tgt["<blank>"]
 
     # define model parameters and create the model
-    d_model = 512
-    model = make_model(len(vocab_src), len(vocab_tgt), n=6)
+    model = make_model(
+        len(vocab_src),
+        len(vocab_tgt),
+        n=cfg.model.n,
+        d_model=cfg.model.d_model,
+        d_ff=cfg.model.d_ff,
+        h=cfg.model.h,
+        dropout=cfg.model.dropout,
+    )
     if device != "cpu":
         model.cuda(device)
     module = model
@@ -96,7 +103,7 @@ def train_model(
     optimizer = torch.optim.Adam(model.parameters(), lr=cfg.base_lr, betas=(0.9, 0.98), eps=1e-9)
     lr_scheduler = LambdaLR(
         optimizer=optimizer,
-        lr_lambda=lambda step: rate(step, d_model, factor=1, warmup=cfg.warmup),
+        lr_lambda=lambda step: rate(step, cfg.model.d_model, factor=1, warmup=cfg.warmup),
     )
 
     train_state = TrainState()

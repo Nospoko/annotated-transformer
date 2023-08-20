@@ -13,3 +13,10 @@ model_path: "wmt16_model_final.pt"
 run: "tests"
 project: "transformer"
 run_id: "70b7c4f6"
+
+model:
+  n: 6
+  d_model: 512
+  d__ff: 2048
+  h: 8
+  dropout: 0.1
