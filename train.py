@@ -126,7 +126,6 @@ def train_model(
             },
             file_path,
         )
-        val_train_state = TrainState()
         print(f"Epoch {epoch} Validation", flush=True)
         model.eval()
         # Evaluate the model on validation set
@@ -134,7 +133,6 @@ def train_model(
             (Batch(b[0], b[1], pad_idx) for b in valid_dataloader),
             model,
             criterion,
-            train_state
         )
         # Log validation and training losses
         print(sloss)
@@ -208,9 +206,8 @@ def val_epoch(
     data_iter: Iterable,
     model: nn.Module,
     criterion: Callable,
-    train_state: TrainState,
     pad_idx=2,
-) -> tuple[float, TrainState]:
+) -> float:
     total_tokens = 0
     total_loss = 0
     tokens = 0
@@ -226,7 +223,7 @@ def val_epoch(
         tokens += batch.ntokens
 
     # Return average loss over all tokens and updated train state
-    return total_loss / len(data_iter), train_state
+    return total_loss / len(data_iter)
 
 
 if __name__ == "__main__":
