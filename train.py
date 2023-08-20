@@ -126,7 +126,7 @@ def train_model(
             },
             file_path,
         )
-
+        val_train_state = TrainState()
         print(f"Epoch {epoch} Validation", flush=True)
         model.eval()
         # Evaluate the model on validation set
@@ -134,6 +134,7 @@ def train_model(
             (Batch(b[0], b[1], pad_idx) for b in valid_dataloader),
             model,
             criterion,
+            train_state
         )
         # Log validation and training losses
         print(sloss)
