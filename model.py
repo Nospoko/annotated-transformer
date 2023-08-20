@@ -21,7 +21,7 @@ def make_model(
     h=8,
     dropout=0.1,
 ):
-    "Helper: Construct a model from hyperparameters."
+    """Helper: Construct a model from hyperparameters."""
     c = copy.deepcopy
     attn = MultiHeadedAttention(h, d_model)
     ff = PositionwiseFeedForward(d_model, d_ff, dropout)
