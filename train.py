@@ -134,6 +134,9 @@ def train_model(
             file_path,
         )
         torch.cuda.empty_cache()
+        torch.cuda.empty_cache()
+        torch.cuda.empty_cache()
+
         print(f"Epoch {epoch} Validation", flush=True)
         model.eval()
         # Evaluate the model on validation set
@@ -146,6 +149,9 @@ def train_model(
         print(sloss)
         wandb.log({"val/loss": sloss, "train/loss": t_loss})
         torch.cuda.empty_cache()
+        torch.cuda.empty_cache()
+        torch.cuda.empty_cache()
+
     return model, run_id
 
 
@@ -179,6 +185,7 @@ def train_epoch(
         train_state.samples += batch.src.shape[0]
         train_state.tokens += batch.ntokens
         del b
+        del batch
 
         # Update the model parameters and optimizer gradients every `accum_iter` iterations
         if i % accum_iter == 0:
@@ -232,6 +239,7 @@ def val_epoch(
         total_tokens += batch.ntokens
         tokens += batch.ntokens
         del b
+        del batch
     del loss
     # Return average loss over all tokens and updated train state
     return total_loss / len(data_iter)
