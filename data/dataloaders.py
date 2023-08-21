@@ -118,6 +118,43 @@ def create_dataloaders(
     max_padding=128,
     split_val="validation",
 ):
+    train_dataloader = create_dataloader(
+        vocab_src,
+        vocab_tgt,
+        spacy_de,
+        spacy_en,
+        slice,
+        device,
+        batch_size,
+        max_padding,
+        split="train",
+    )
+    valid_dataloader = create_dataloader(
+        vocab_src,
+        vocab_tgt,
+        spacy_de,
+        spacy_en,
+        slice,
+        device,
+        batch_size,
+        max_padding,
+        split=split_val,
+    )
+
+    return train_dataloader, valid_dataloader
+
+
+def create_dataloader(
+    vocab_src: Vocab,
+    vocab_tgt: Vocab,
+    spacy_de: spacy.Language,
+    spacy_en: spacy.Language,
+    slice: str,
+    device=torch.device("cpu"),
+    batch_size=12000,
+    max_padding=128,
+    split="test",
+):
     # def create_dataloaders(batch_size=12000):
     def tokenize_de(text):
         return tokenize(text, spacy_de)
@@ -137,22 +174,15 @@ def create_dataloaders(
             pad_id=vocab_src.get_stoi()["<blank>"],
         )
 
-    train_data = TranslationDataset(split=f"train[:{slice}]", language_pair="de-en")
-    val_data = TranslationDataset(split=f"{split_val}[:{slice}]", language_pair="de-en")
+    data = TranslationDataset(split=f"{split}[:{slice}]", language_pair="de-en")
 
-    train_dataloader = DataLoader(
-        train_data,
+    dataloader = DataLoader(
+        data,
         batch_size=batch_size,
         shuffle=True,
         collate_fn=collate_fn,
     )
-    valid_dataloader = DataLoader(
-        val_data,
-        batch_size=batch_size,
-        shuffle=True,
-        collate_fn=collate_fn,
-    )
-    return train_dataloader, valid_dataloader
+    return dataloader
 
 
 if __name__ == "__main__":

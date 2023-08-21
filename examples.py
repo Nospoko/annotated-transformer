@@ -4,7 +4,7 @@ from omegaconf import DictConfig
 from model import make_model
 from eval import load_checkpoint
 from utils import translated_sentences
-from data.dataloaders import load_vocab, load_tokenizers, create_dataloaders
+from data.dataloaders import load_vocab, load_tokenizers, create_dataloader
 
 
 @hydra.main(version_base=None, config_path="config", config_name="eval_conf")
@@ -14,13 +14,13 @@ def main(cfg: DictConfig):
     checkpoint = load_checkpoint(run_id=cfg.run_id)
     model_cfg = checkpoint["cfg"]
     print("Preparing Data ...")
-    train_dataloader, test_dataloader = create_dataloaders(
+    test_dataloader = create_dataloader(
         vocab_src,
         vocab_tgt,
         spacy_de,
         spacy_en,
         slice=model_cfg["data_slice"],
-        split_val="test",
+        split="test",
         batch_size=1,
     )
 
