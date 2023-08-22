@@ -8,7 +8,6 @@ import torch
 import einops
 import torch.nn as nn
 from tqdm import tqdm
-
 import torchtext.vocab.vocab
 from torch.optim.lr_scheduler import LambdaLR
 from omegaconf.omegaconf import OmegaConf, DictConfig
@@ -126,7 +125,7 @@ def train_model(
             pad_idx=pad_idx,
             train_state=train_state,
             accum_iter=cfg["accum_iter"],
-            log_frequency=cfg.log_frequency
+            log_frequency=cfg.log_frequency,
         )
 
         # Save checkpoint after each epoch
@@ -169,7 +168,6 @@ def train_epoch(
     accum_iter=1,
     log_frequency=10,
 ) -> tuple[float, TrainState]:
-
     start = time.time()
     total_loss = 0
     tokens = 0

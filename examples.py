@@ -1,5 +1,4 @@
 import hydra
-import torch
 from omegaconf import DictConfig
 
 from model import make_model
@@ -12,10 +11,8 @@ from data.dataloaders import load_vocab, load_tokenizers, create_dataloader
 def main(cfg: DictConfig):
     checkpoint = load_checkpoint(run_id=cfg.run_id)
     model_cfg = checkpoint["cfg"]
-
-    print(model_cfg["data_slice"])
     spacy_de, spacy_en = load_tokenizers()
-    vocab_src, vocab_tgt = load_vocab(spacy_de, spacy_en, "4%")
+    vocab_src, vocab_tgt = load_vocab(spacy_de, spacy_en, model_cfg["data_slice"])
 
     print("Preparing Data ...")
     test_dataloader = create_dataloader(
@@ -26,6 +23,7 @@ def main(cfg: DictConfig):
         slice=model_cfg["data_slice"],
         split="test",
         batch_size=1,
+        shuffle=cfg.random_examples,
     )
 
     print("Loading Trained Model ...")
@@ -39,13 +37,9 @@ def main(cfg: DictConfig):
         dropout=model_cfg["model"]["dropout"],
     )
     model.load_state_dict(checkpoint["model_state_dict"])
-    if cfg.random_examples:
-        indexes = torch.randint(0, len(test_dataloader), [cfg.n_examples])
-    else:
-        indexes = range(cfg.n_examples)
     print("Checking Model Outputs:")
     translations = translated_sentences(test_dataloader, model, vocab_src, vocab_tgt, n_examples=cfg.n_examples)
-    for idx in indexes:
+    for idx in range(cfg.n_examples):
         print("Source Text (Input)        : " + translations[idx]["src"])
         print("Target Text (Ground Truth) : " + translations[idx]["tgt"])
         print("Model Output               : " + translations[idx]["out"])

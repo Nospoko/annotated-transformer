@@ -11,7 +11,6 @@ from data.dataloaders import load_vocab, load_tokenizers, create_dataloader
 
 @hydra.main(version_base=None, config_path="config", config_name="eval_conf")
 def main(cfg):
-
     checkpoint = load_checkpoint(run_id=cfg.run_id)
     model_cfg = checkpoint["cfg"]
     spacy_de, spacy_en = load_tokenizers()
