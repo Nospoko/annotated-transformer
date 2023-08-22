@@ -128,6 +128,7 @@ def create_dataloaders(
         batch_size,
         max_padding,
         split="train",
+        shuffle=True,
     )
     valid_dataloader = create_dataloader(
         vocab_src,
@@ -153,7 +154,8 @@ def create_dataloader(
     device=torch.device("cpu"),
     batch_size=12000,
     max_padding=128,
-    split="test",
+    split="train",
+    shuffle=False,
 ):
     # def create_dataloaders(batch_size=12000):
     def tokenize_de(text):
@@ -179,7 +181,7 @@ def create_dataloader(
     dataloader = DataLoader(
         data,
         batch_size=batch_size,
-        shuffle=True,
+        shuffle=shuffle,
         collate_fn=collate_fn,
     )
     return dataloader

@@ -8,9 +8,10 @@ warmup: 3000
 device: "cpu"
 data_slice: "4%"
 
-file_prefix: "wmt16_model_"
+log_frequency: 10
+file_prefix: "wmt16_model"
 model_path: "wmt16_model_final.pt"
-run: "tests"
+run: transformer-${now:%Y-%m-%d-%H-%M}
 project: "transformer"
 run_id: "70b7c4f6"
 

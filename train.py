@@ -8,6 +8,7 @@ import torch
 import einops
 import torch.nn as nn
 from tqdm import tqdm
+
 import torchtext.vocab.vocab
 from torch.optim.lr_scheduler import LambdaLR
 from omegaconf.omegaconf import OmegaConf, DictConfig
@@ -25,6 +26,8 @@ def main(cfg: DictConfig):
     # load tokenizers and vocab
     spacy_de, spacy_en = load_tokenizers()
     vocab_src, vocab_tgt = load_vocab(spacy_de, spacy_en, cfg.data_slice)
+    vocab_src_size = len(vocab_src)
+    vocab_tgt_size = len(vocab_tgt)
     # Train a model
     model, run_id = train_model(vocab_src, vocab_tgt, spacy_de, spacy_en, cfg, device=cfg.device)
 
@@ -34,6 +37,8 @@ def main(cfg: DictConfig):
         {
             "model_state_dict": model.state_dict(),
             "cfg": OmegaConf.to_container(cfg, resolve=True),
+            "vocab_src_size": vocab_src_size,
+            "vocab_tgt_size": vocab_tgt_size,
         },
         file_path,
     )
@@ -62,31 +67,30 @@ def train_model(
     device="cpu",
 ) -> tuple[nn.Module, str]:
     print(f"Train using {device}")
-    if device != "cpu":
-        torch.cuda.set_device(device)
+
     run_id = initialize_wandb(cfg)
 
     # Get the index for padding token
     pad_idx = vocab_tgt["<blank>"]
+    vocab_src_size = len(vocab_src)
+    vocab_tgt_size = len(vocab_tgt)
 
     # define model parameters and create the model
     model = make_model(
-        len(vocab_src),
-        len(vocab_tgt),
+        vocab_src_size,
+        vocab_tgt_size,
         n=cfg.model.n,
         d_model=cfg.model.d_model,
         d_ff=cfg.model.d_ff,
         h=cfg.model.h,
         dropout=cfg.model.dropout,
     )
-    if device != "cpu":
-        model.cuda(device)
-    module = model
+    model.to(device)
 
     # Set LabelSmoothing as a criterion for loss calculation
     criterion = LabelSmoothing(size=len(vocab_tgt), padding_idx=pad_idx, smoothing=0.1)
-    if device != "cpu":
-        criterion.cuda(device)
+    criterion.to(device)
+
     # Create dataloaders
     train_dataloader, valid_dataloader = create_dataloaders(
         vocab_src,
@@ -122,19 +126,20 @@ def train_model(
             pad_idx=pad_idx,
             train_state=train_state,
             accum_iter=cfg["accum_iter"],
+            log_frequency=cfg.log_frequency
         )
 
         # Save checkpoint after each epoch
         file_path = f"models/{cfg.file_prefix}-{run_id}-{epoch}.pt"
         torch.save(
             {
-                "model_state_dict": module.state_dict(),
+                "model_state_dict": model.state_dict(),
                 "cfg": OmegaConf.to_container(cfg),
+                "vocab_src_len": len(vocab_src),
+                "vocab_tgt_len": len(vocab_tgt),
             },
             file_path,
         )
-        torch.cuda.empty_cache()
-        torch.cuda.empty_cache()
         torch.cuda.empty_cache()
 
         print(f"Epoch {epoch} Validation", flush=True)
@@ -149,8 +154,6 @@ def train_model(
         print(sloss)
         wandb.log({"val/loss": sloss, "train/loss": t_loss})
         torch.cuda.empty_cache()
-        torch.cuda.empty_cache()
-        torch.cuda.empty_cache()
 
     return model, run_id
 
@@ -164,9 +167,10 @@ def train_epoch(
     train_state: TrainState,
     pad_idx=2,
     accum_iter=1,
+    log_frequency=10,
 ) -> tuple[float, TrainState]:
+
     start = time.time()
-    total_tokens = 0
     total_loss = 0
     tokens = 0
     n_accum = 0
@@ -198,11 +202,10 @@ def train_epoch(
 
         # Update loss and token counts
         total_loss += loss.item()
-        total_tokens += batch.ntokens
         tokens += batch.ntokens
 
         # log metrics every 10 steps
-        if i % 10 == 1:
+        if i % log_frequency == 1:
             lr = optimizer.param_groups[0]["lr"]
             elapsed = time.time() - start
             tok_rate = tokens / elapsed
@@ -212,10 +215,12 @@ def train_epoch(
 
             # log the loss each to Weights and Biases
             wandb.log({"train_steps/loss": loss.item()})
-            del batch
-            del b
-    # Return average loss over all tokens and updated train state
+    del encode_decode
+    del out
+    del batch
+    del lr
     del loss
+    # Return average loss over all tokens and updated train state
     return total_loss / len(data_iter), train_state
 
 
@@ -238,9 +243,10 @@ def val_epoch(
         total_loss += loss.item()
         total_tokens += batch.ntokens
         tokens += batch.ntokens
-        del b
-        del batch
+    del encoded_decoded
+    del batch
     del loss
+    del out
     # Return average loss over all tokens and updated train state
     return total_loss / len(data_iter)
 
