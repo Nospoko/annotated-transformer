@@ -1,4 +1,5 @@
 from os.path import exists
+from typing import Callable, Iterable
 
 import spacy
 import torch
@@ -62,11 +63,11 @@ def load_vocab(
 
 # code for evenly dividing torchtext data to batches
 def collate_batch(
-    batch,
-    src_tokens_fn,
-    tgt_tokens_fn,
-    src_vocab,
-    tgt_vocab,
+    batch: Iterable,
+    src_tokens_fn: Callable,
+    tgt_tokens_fn: Callable,
+    src_vocab: torchtext.vocab.Vocab,
+    tgt_vocab: torchtext.vocab.Vocab,
     device=torch.device("cpu"),
     max_padding=128,
     pad_id=2,

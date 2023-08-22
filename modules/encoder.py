@@ -29,6 +29,6 @@ class EncoderLayer(nn.Module):
         self.sublayer = clones(SublayerConnection(size, dropout), 2)
         self.size = size
 
-    def forward(self, x, mask):
+    def forward(self, x: torch.Tensor, mask: torch.Tensor):
         x = self.sublayer[0](x, lambda x: self.self_attn(x, x, x, mask))
         return self.sublayer[1](x, self.feed_forward)

@@ -38,7 +38,7 @@ class MultiHeadedAttention(nn.Module):
         self.attn = None
         self.dropout = nn.Dropout(p=dropout)
 
-    def forward(self, query, key, value, mask=None):
+    def forward(self, query: torch.Tensor, key: torch.Tensor, value: torch.Tensor, mask=None):
         if mask is not None:
             # Same mask applied to all h heads.
             mask = mask.unsqueeze(1)

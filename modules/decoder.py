@@ -29,7 +29,7 @@ class DecoderLayer(nn.Module):
         self.feed_forward = feed_forward
         self.sublayer = clones(SublayerConnection(size, dropout), 3)
 
-    def forward(self, x: torch.Tensor, memory, src_mask, tgt_mask):
+    def forward(self, x: torch.Tensor, memory: torch.Tensor, src_mask: torch.Tensor, tgt_mask: torch.Tensor):
         """Follow Figure 1 (right) for connections."""
         m = memory
         x = self.sublayer[0](x, lambda x: self.self_attn(x, x, x, tgt_mask))

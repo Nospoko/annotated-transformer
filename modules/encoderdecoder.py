@@ -21,14 +21,14 @@ class EncoderDecoder(nn.Module):
         self.tgt_embed = tgt_embed
         self.generator = generator
 
-    def forward(self, src, tgt, src_mask, tgt_mask):
+    def forward(self, src: torch.Tensor, tgt: torch.Tensor, src_mask: torch.Tensor, tgt_mask: torch.Tensor):
         """Take in and process masked src and target sequences."""
         return self.decode(self.encode(src, src_mask), src_mask, tgt, tgt_mask)
 
-    def encode(self, src, src_mask):
+    def encode(self, src: torch.Tensor, src_mask: torch.Tensor):
         return self.encoder(self.src_embed(src), src_mask)
 
-    def decode(self, memory, src_mask, tgt, tgt_mask):
+    def decode(self, memory: torch.Tensor, src_mask: torch.Tensor, tgt: torch.Tensor, tgt_mask: torch.Tensor):
         return self.decoder(self.tgt_embed(tgt), memory, src_mask, tgt_mask)
 
 
@@ -43,7 +43,7 @@ class Generator(nn.Module):
         return log_softmax(self.proj(x), dim=-1)
 
 
-def subsequent_mask(size):
+def subsequent_mask(size: int):
     """Mask out subsequent positions."""
     attn_shape = (1, size, size)
     subsequent_mask = torch.triu(torch.ones(attn_shape), diagonal=1).type(torch.uint8)

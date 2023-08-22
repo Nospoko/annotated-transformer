@@ -13,7 +13,6 @@ file_prefix: "wmt16_model"
 model_path: "wmt16_model_final.pt"
 run: transformer-${now:%Y-%m-%d-%H-%M}
 project: "transformer"
-run_id: "70b7c4f6"
 
 model:
   n: 6

@@ -1,4 +1,5 @@
 import os
+from typing import Iterable
 
 import spacy
 
@@ -21,11 +22,11 @@ def load_tokenizers():
     return spacy_de, spacy_en
 
 
-def tokenize(text, tokenizer):
+def tokenize(text: str, tokenizer: spacy.Language):
     return [tok.text for tok in tokenizer.tokenizer(text)]
 
 
-def yield_tokens(data_iter, tokenizer, index):
+def yield_tokens(data_iter: Iterable, tokenizer: spacy.Language, index: int):
     for from_to in data_iter:
         yield tokenizer(from_to[index])
 

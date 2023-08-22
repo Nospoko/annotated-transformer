@@ -52,7 +52,7 @@ def translated_sentences(
     return results
 
 
-def greedy_decode(model, src, src_mask, max_len, start_symbol):
+def greedy_decode(model: nn.Module, src: torch.Tensor, src_mask: torch.Tensor, max_len: int, start_symbol: int):
     memory = model.encode(src, src_mask)
     # Create a tensor and put start symbol inside
     sentence = torch.Tensor([[start_symbol]]).type_as(src.data)
