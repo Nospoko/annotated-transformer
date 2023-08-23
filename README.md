@@ -18,8 +18,9 @@ path to save your model state dict to, on which device to run the training (0 fo
 For example, you can run the training in colab by cloning the repository and running:
 ```shell
 ! pip install -r requirements.txt
-!python3 train.py device=0 batch_size=32 data_slice="25%" run="colab-run" file_prefix="wmt16_gpu_model"
+! python3 train.py device=0 batch_size=32 data_slice="25%" run="colab-run" file_prefix="wmt16_gpu_model"
 ```
+You have to commit the notebook to download the trained model.
 ### Important note:
 If you wish to change data_slice parameter to be different from the last run, you have to delete
 'vocab.pt' file from annotated-transformer directory.

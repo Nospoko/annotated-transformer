@@ -134,11 +134,12 @@ def train_model(
             {
                 "model_state_dict": model.state_dict(),
                 "cfg": OmegaConf.to_container(cfg),
-                "vocab_src_len": len(vocab_src),
-                "vocab_tgt_len": len(vocab_tgt),
+                "vocab_src_size": len(vocab_src),
+                "vocab_tgt_size": len(vocab_tgt),
             },
             file_path,
         )
+
         torch.cuda.empty_cache()
 
         print(f"Epoch {epoch} Validation", flush=True)
@@ -152,6 +153,7 @@ def train_model(
         # Log validation and training losses
         print(sloss)
         wandb.log({"val/loss": sloss, "train/loss": t_loss})
+
         torch.cuda.empty_cache()
 
     return model, run_id
@@ -176,10 +178,13 @@ def train_epoch(
 
     # create progress bar
     pbar = tqdm(data_iter)
+
     for b in pbar:  # for batch in dataloader
         batch = Batch(b[0], b[1], pad_idx)
+
         encode_decode = model.forward(batch.src, batch.tgt, batch.src_mask, batch.tgt_mask)
         out = model.generator(encode_decode)
+
         loss = criterion(einops.rearrange(out, "b n d -> (b n) d"), einops.rearrange(batch.tgt_y, "b n -> (b n)")) / batch.ntokens
         loss.backward()
 
@@ -213,11 +218,8 @@ def train_epoch(
 
             # log the loss each to Weights and Biases
             wandb.log({"train_steps/loss": loss.item()})
-    del encode_decode
-    del out
-    del batch
+    del optimizer
     del lr
-    del loss
     # Return average loss over all tokens and updated train state
     return total_loss / len(data_iter), train_state
 
@@ -241,10 +243,7 @@ def val_epoch(
         total_loss += loss.item()
         total_tokens += batch.ntokens
         tokens += batch.ntokens
-    del encoded_decoded
-    del batch
-    del loss
-    del out
+
     # Return average loss over all tokens and updated train state
     return total_loss / len(data_iter)
 
