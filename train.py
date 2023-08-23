@@ -112,6 +112,7 @@ def train_model(
     for epoch in range(cfg.num_epochs):
         model.train()
         print(f"Epoch {epoch}", flush=True)
+
         # Train model for one epoch
         t_loss, train_state = train_epoch(
             train_dataloader,
@@ -177,10 +178,10 @@ def train_epoch(
     for batch in pbar:  # for batch in dataloader
         encode_decode = model.forward(batch.src, batch.tgt, batch.src_mask, batch.tgt_mask)
         out = model.generator(encode_decode)
-        del encode_decode
         loss = criterion(einops.rearrange(out, "b n d -> (b n) d"), einops.rearrange(batch.tgt_y, "b n -> (b n)")) / batch.ntokens
         loss.backward()
 
+        loss_item = loss.item()
         train_state.step += 1
         train_state.samples += batch.src.shape[0]
         train_state.tokens += batch.ntokens
@@ -192,29 +193,29 @@ def train_epoch(
         total_loss += loss.item()
         tokens += batch.ntokens
 
-        # log metrics every 10 steps
+        # Update the model parameters and optimizer gradients every `accum_iter` iterations
+        if i % accum_iter == 0:
+            optimizer.step()
+            optimizer.zero_grad(set_to_none=True)
+            n_accum += 1
+            train_state.accum_step += 1
+        i += 1
+
+        # log metrics every log_frequency steps
         if i % log_frequency == 1:
             lr = optimizer.param_groups[0]["lr"]
             elapsed = time.time() - start
             tok_rate = tokens / elapsed
             pbar.set_description(
-                f"Epoch Step: {i:6d} | Accumulation Step: {n_accum:3d} | Loss: {loss.item():6.2f}"
+                f"Epoch Step: {i:6d} | Accumulation Step: {n_accum:3d} | Loss: {loss_item:6.2f}"
                 + f"| Tokens / Sec {tok_rate:7.1f} | Learning Rate: {lr:6.1e}"
             )
-            del loss, out
-            # Update the model parameters and optimizer gradients every `accum_iter` iterations
-            if i % accum_iter == 0:
-                optimizer.step()
-                optimizer.zero_grad(set_to_none=True)
-                n_accum += 1
-                train_state.accum_step += 1
-            i += 1
 
             # log the loss each to Weights and Biases
             wandb.log({"train_steps/loss": loss.item()})
-    del loss, batch, out
-    # Return average loss over all tokens and updated train state
-    return total_loss / len(data_iter), train_state
+
+        # Return average loss over all tokens and updated train state
+        return total_loss / len(data_iter), train_state
 
 
 def val_epoch(
