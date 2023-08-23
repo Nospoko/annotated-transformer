@@ -11,7 +11,11 @@ from data.dataloaders import load_vocab, load_tokenizers, create_dataloader
 
 @hydra.main(version_base=None, config_path="config", config_name="eval_conf")
 def main(cfg):
-    checkpoint = load_checkpoint(run_id=cfg.run_id, epoch=cfg.model_epoch, device=cfg.device)
+    checkpoint = load_checkpoint(
+        run_name=cfg.run_name,
+        epoch=cfg.model_epoch,
+        device=cfg.device,
+    )
     model_cfg = checkpoint["cfg"]
     spacy_de, spacy_en = load_tokenizers()
     vocab_src, vocab_tgt = load_vocab(spacy_de, spacy_en, model_cfg["vocab_data_slice"])
@@ -47,11 +51,11 @@ def main(cfg):
     print(f"Model loss:   {loss}")
 
 
-def load_checkpoint(run_id: str, epoch="final", device="cpu"):
-    # find path with desired run_id
+def load_checkpoint(run_name: str, epoch="final", device="cpu"):
+    # find path with desired run
     path = None
     for file in os.listdir("models"):
-        if file.find(f"{run_id}-{epoch}") > 0:
+        if file.find(f"{run_name}-{epoch}") > 0:
             path = file
             break
     if path is None:

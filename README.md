@@ -11,23 +11,25 @@ without the need for explicit sequential processing.
 You can train the model on 1% wmt16 dataset by running
 ```shell
 pip install -r requirements.txt
-python3 train.py
+python train.py
 ```
 You can specialize how many data from wmt16 you want, how to name your project on wandb, what
 path to save your model state dict to, on which device to run the training (0 for gpu, 'cpu' for cpu). </br>
 For example, you can run the training in colab by cloning the repository and running:
 ```shell
 ! pip install -r requirements.txt
-! python3 train.py device=0 batch_size=32 data_slice="25%" run="colab-run" file_prefix="wmt16_gpu_model"
+! python train.py device=cuda train.batch_size=32 data_slice="25%" run_name="colab-run" file_prefix="wmt16_gpu_model"
 ```
 You have to commit the notebook to download the trained model.
+
 ### Important note:
 If you wish to change data_slice parameter to be different from the last run, you have to delete
 'vocab.pt' file from annotated-transformer directory.
+
 ## Examples
 You can produce translation examples by running:
 ```shell
-python3 examples.py n_examples=5 run_id=your_model_run_id
+python examples.py n_examples=5 run_name=your_run_name
 ```
 Output for model trained on 1% of the data:
 ```

@@ -1,5 +1,4 @@
 import time
-import uuid
 from typing import Callable, Iterable
 
 import hydra
@@ -9,11 +8,10 @@ import einops
 import torch.nn as nn
 from tqdm import tqdm
 import torchtext.vocab.vocab
+from omegaconf import OmegaConf, DictConfig
 from torch.optim.lr_scheduler import LambdaLR
-from omegaconf.omegaconf import OmegaConf, DictConfig
 
 import wandb
-from data.batch import Batch
 from model import make_model
 from utils import TrainState, rate
 from modules.label_smoothing import LabelSmoothing
@@ -24,14 +22,25 @@ from data.dataloaders import load_vocab, load_tokenizers, create_dataloaders
 def main(cfg: DictConfig):
     # load tokenizers and vocab
     spacy_de, spacy_en = load_tokenizers()
-    vocab_src, vocab_tgt = load_vocab(spacy_de, spacy_en, cfg.vocab_data_slice)
+    vocab_src, vocab_tgt = load_vocab(spacy_de, spacy_en, cfg)
     vocab_src_size = len(vocab_src)
     vocab_tgt_size = len(vocab_tgt)
+
     # Train a model
-    model, run_id = train_model(vocab_src, vocab_tgt, spacy_de, spacy_en, cfg, device=cfg.device)
+    initialize_wandb(cfg)
+    print(f"Train using {cfg.device}")
+
+    model = train_model(
+        vocab_src=vocab_src,
+        vocab_tgt=vocab_tgt,
+        spacy_de=spacy_de,
+        spacy_en=spacy_en,
+        cfg=cfg,
+        device=cfg.device,
+    )
 
     # save weights to a file
-    file_path = f"models/{cfg.file_prefix}-{run_id}-final.pt"
+    file_path = f"models/{cfg.file_prefix}-{cfg.run_name}-final.pt"
     torch.save(
         {
             "model_state_dict": model.state_dict(),
@@ -42,19 +51,13 @@ def main(cfg: DictConfig):
         file_path,
     )
 
-    # print a run_id of the model
-    print(run_id)
-
 
 def initialize_wandb(cfg: DictConfig) -> str:
-    # initialize experiment on WandB with unique run id
-    run_id = str(uuid.uuid1())[:8]
     wandb.init(
         project=cfg.project,
-        name=f"{cfg.run}-{run_id}",
+        name=cfg.run_name,
         config=OmegaConf.to_container(cfg, resolve=True),
     )
-    return run_id
 
 
 def train_model(
@@ -63,12 +66,8 @@ def train_model(
     spacy_de: spacy.Language,
     spacy_en: spacy.Language,
     cfg: DictConfig,
-    device="cpu",
-) -> tuple[nn.Module, str]:
-    print(f"Train using {device}")
-
-    run_id = initialize_wandb(cfg)
-
+    device: str = "cpu",
+) -> nn.Module:
     # Get the index for padding token
     pad_idx = vocab_tgt["<blank>"]
     vocab_src_size = len(vocab_src)
@@ -76,8 +75,8 @@ def train_model(
 
     # define model parameters and create the model
     model = make_model(
-        vocab_src_size,
-        vocab_tgt_size,
+        vocab_src_size=vocab_src_size,
+        vocab_tgt_size=vocab_tgt_size,
         n=cfg.model.n,
         d_model=cfg.model.d_model,
         d_ff=cfg.model.d_ff,
@@ -87,46 +86,50 @@ def train_model(
     model.to(device)
 
     # Set LabelSmoothing as a criterion for loss calculation
-    criterion = LabelSmoothing(size=len(vocab_tgt), padding_idx=pad_idx, smoothing=0.1)
+    criterion = LabelSmoothing(
+        size=vocab_tgt_size,
+        padding_idx=pad_idx,
+        smoothing=cfg.train.label_smoothing,
+    )
     criterion.to(device)
 
     # Create dataloaders
     train_dataloader, valid_dataloader = create_dataloaders(
-        vocab_src,
-        vocab_tgt,
-        spacy_de,
-        spacy_en,
+        vocab_src=vocab_src,
+        vocab_tgt=vocab_tgt,
+        spacy_de=spacy_de,
+        spacy_en=spacy_en,
         device=device,
         slice=cfg.data_slice,
-        batch_size=cfg.batch_size,
         max_padding=cfg.max_padding,
+        batch_size=cfg.train.batch_size,
     )
 
-    # Define optimizer and learning rate scheduler
-    optimizer = torch.optim.Adam(model.parameters(), lr=cfg.base_lr, betas=(0.9, 0.98), eps=1e-9)
+    # Define optimizer and learning rate lr_scheduler
+    optimizer = torch.optim.Adam(model.parameters(), lr=cfg.train.base_lr, betas=(0.9, 0.98), eps=1e-9)
     lr_scheduler = LambdaLR(
         optimizer=optimizer,
         lr_lambda=lambda step: rate(step, cfg.model.d_model, factor=1, warmup=cfg.warmup),
     )
     train_state = TrainState()
-    for epoch in range(cfg.num_epochs):
+    for epoch in range(cfg.train.num_epochs):
         model.train()
         print(f"Epoch {epoch}", flush=True)
 
         # Train model for one epoch
         t_loss, train_state = train_epoch(
-            train_dataloader,
-            model,
-            criterion,
-            optimizer,
-            lr_scheduler,
+            dataloader=train_dataloader,
+            model=model,
+            criterion=criterion,
+            optimizer=optimizer,
+            lr_scheduler=lr_scheduler,
             train_state=train_state,
-            accum_iter=cfg["accum_iter"],
+            accum_iter=cfg.train.accum_iter,
             log_frequency=cfg.log_frequency,
         )
 
         # Save checkpoint after each epoch
-        file_path = f"models/{cfg.file_prefix}-{run_id}-{epoch}.pt"
+        file_path = f"models/{cfg.file_prefix}-{cfg.run_name}-{epoch}.pt"
         torch.save(
             {
                 "model_state_dict": model.state_dict(),
@@ -137,91 +140,88 @@ def train_model(
             file_path,
         )
 
-        torch.cuda.empty_cache()
-
         print(f"Epoch {epoch} Validation", flush=True)
         with torch.no_grad():
             model.eval()
             # Evaluate the model on validation set
-            sloss = val_epoch(
-                train_dataloader,
-                model,
-                criterion,
+            v_loss = val_epoch(
+                dataloader=valid_dataloader,
+                model=model,
+                criterion=criterion,
             )
-        torch.cuda.empty_cache()
+
         # Log validation and training losses
-        print(sloss)
-        wandb.log({"val/loss": sloss, "train/loss": t_loss})
-    return model, run_id
+        wandb.log({"val/loss_epoch": v_loss, "train/loss_epoch": t_loss})
+    return model
 
 
 def train_epoch(
-    data_iter: Iterable,
+    dataloader: Iterable,
     model: nn.Module,
     criterion: Callable,
     optimizer: torch.optim.Optimizer,
-    scheduler: LambdaLR,
+    lr_scheduler: LambdaLR,
     train_state: TrainState,
     accum_iter=1,
     log_frequency=10,
 ) -> tuple[float, TrainState]:
-
     start = time.time()
     total_loss = 0
     tokens = 0
     n_accum = 0
-    i = 0  # iteration counter
+    it = 0
 
     # create progress bar
-    pbar = tqdm(data_iter)
-
-    for batch in pbar:  # for batch in dataloader
+    pbar = tqdm(dataloader)
+    steps = len(dataloader)
+    for batch in pbar:
         encode_decode = model.forward(batch.src, batch.tgt, batch.src_mask, batch.tgt_mask)
         out = model.generator(encode_decode)
-        loss = criterion(einops.rearrange(out, "b n d -> (b n) d"), einops.rearrange(batch.tgt_y, "b n -> (b n)")) / batch.ntokens
+
+        out = einops.rearrange(out, "b n d -> (b n) d")
+        target = einops.rearrange(batch.tgt_y, "b n -> (b n)")
+        loss = criterion(out, target) / batch.ntokens
         loss.backward()
 
-        loss_item = loss.item()
         train_state.step += 1
         train_state.samples += batch.src.shape[0]
         train_state.tokens += batch.ntokens
 
         # Update the model parameters and optimizer gradients every `accum_iter` iterations
-        if i % accum_iter == 0:
+        if it % accum_iter == 0 or it == steps - 1:
             optimizer.step()
             optimizer.zero_grad(set_to_none=True)
             n_accum += 1
             train_state.accum_step += 1
-        i += 1
+        it += 1
 
-        # Update learning rate scheduler
-        scheduler.step()
+        # Update learning rate lr_scheduler
+        lr_scheduler.step()
 
         # Update loss and token counts
+        loss_item = loss.item()
         total_loss += loss.item()
         tokens += batch.ntokens
 
-
-
         # log metrics every log_frequency steps
-        if i % log_frequency == 1:
+        if it % log_frequency == 1:
             lr = optimizer.param_groups[0]["lr"]
             elapsed = time.time() - start
             tok_rate = tokens / elapsed
             pbar.set_description(
-                f"Epoch Step: {i:6d} | Accumulation Step: {n_accum:3d} | Loss: {loss_item:6.2f}"
-                + f"| Tokens / Sec {tok_rate:7.1f} | Learning Rate: {lr:6.1e}"
+                f"Step: {it:6d}/{steps} | acc_step: {n_accum:3d} | Loss: {loss_item:6.2f}"
+                + f"| tps: {tok_rate:7.1f} | LR: {lr:6.1e}"
             )
 
             # log the loss each to Weights and Biases
-            wandb.log({"train_steps/loss": loss.item()})
+            wandb.log({"train/loss_step": loss.item()})
 
     # Return average loss over all tokens and updated train state
-    return total_loss / len(data_iter), train_state
+    return total_loss / len(dataloader), train_state
 
 
 def val_epoch(
-    data_iter: Iterable,
+    dataloader: Iterable,
     model: nn.Module,
     criterion: Callable,
 ) -> float:
@@ -229,7 +229,7 @@ def val_epoch(
     total_loss = 0
     tokens = 0
 
-    for batch in tqdm(data_iter):
+    for batch in tqdm(dataloader):
         encoded_decoded = model.forward(batch.src, batch.tgt, batch.src_mask, batch.tgt_mask)
         out = model.generator(encoded_decoded)
 
@@ -241,7 +241,7 @@ def val_epoch(
         total_tokens += batch.ntokens
         tokens += batch.ntokens
     # Return average loss over all tokens and updated train state
-    return total_loss / len(data_iter)
+    return total_loss / len(dataloader)
 
 
 if __name__ == "__main__":
