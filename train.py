@@ -186,13 +186,6 @@ def train_epoch(
         train_state.samples += batch.src.shape[0]
         train_state.tokens += batch.ntokens
 
-        # Update learning rate scheduler
-        scheduler.step()
-
-        # Update loss and token counts
-        total_loss += loss.item()
-        tokens += batch.ntokens
-
         # Update the model parameters and optimizer gradients every `accum_iter` iterations
         if i % accum_iter == 0:
             optimizer.step()
@@ -200,6 +193,15 @@ def train_epoch(
             n_accum += 1
             train_state.accum_step += 1
         i += 1
+
+        # Update learning rate scheduler
+        scheduler.step()
+
+        # Update loss and token counts
+        total_loss += loss.item()
+        tokens += batch.ntokens
+
+
 
         # log metrics every log_frequency steps
         if i % log_frequency == 1:
