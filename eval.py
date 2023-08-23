@@ -11,10 +11,10 @@ from data.dataloaders import load_vocab, load_tokenizers, create_dataloader
 
 @hydra.main(version_base=None, config_path="config", config_name="eval_conf")
 def main(cfg):
-    checkpoint = load_checkpoint(run_id=cfg.run_id, device=cfg.device)
+    checkpoint = load_checkpoint(run_id=cfg.run_id, epoch=cfg.model_epoch, device=cfg.device)
     model_cfg = checkpoint["cfg"]
     spacy_de, spacy_en = load_tokenizers()
-    vocab_src, vocab_tgt = load_vocab(spacy_de, spacy_en, model_cfg["data_slice"])
+    vocab_src, vocab_tgt = load_vocab(spacy_de, spacy_en, "40%")
     print("Preparing Data ...")
     test_dataloader = create_dataloader(
         vocab_src,
