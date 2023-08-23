@@ -103,15 +103,13 @@ def train_model(
     )
 
     # Define optimizer and learning rate scheduler
-
+    optimizer = torch.optim.Adam(model.parameters(), lr=cfg.base_lr, betas=(0.9, 0.98), eps=1e-9)
+    lr_scheduler = LambdaLR(
+        optimizer=optimizer,
+        lr_lambda=lambda step: rate(step, cfg.model.d_model, factor=1, warmup=cfg.warmup),
+    )
     train_state = TrainState()
     for epoch in range(cfg.num_epochs):
-        optimizer = torch.optim.Adam(model.parameters(), lr=cfg.base_lr, betas=(0.9, 0.98), eps=1e-9)
-        lr_scheduler = LambdaLR(
-            optimizer=optimizer,
-            lr_lambda=lambda step: rate(step, cfg.model.d_model, factor=1, warmup=cfg.warmup),
-        )
-
         model.train()
         print(f"Epoch {epoch}", flush=True)
         # Train model for one epoch
@@ -126,7 +124,6 @@ def train_model(
             accum_iter=cfg["accum_iter"],
             log_frequency=cfg.log_frequency,
         )
-        del lr_scheduler, optimizer  # only deleting both lr_scheduler and optimizer frees memory
 
         # Save checkpoint after each epoch
         file_path = f"models/{cfg.file_prefix}-{run_id}-{epoch}.pt"
@@ -155,7 +152,6 @@ def train_model(
         # Log validation and training losses
         print(sloss)
         wandb.log({"val/loss": sloss, "train/loss": t_loss})
-
     return model, run_id
 
 
