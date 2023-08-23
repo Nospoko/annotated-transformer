@@ -119,7 +119,6 @@ def train_model(
             criterion,
             optimizer,
             lr_scheduler,
-            pad_idx=pad_idx,
             train_state=train_state,
             accum_iter=cfg["accum_iter"],
             log_frequency=cfg.log_frequency,
@@ -165,6 +164,7 @@ def train_epoch(
     accum_iter=1,
     log_frequency=10,
 ) -> tuple[float, TrainState]:
+
     start = time.time()
     total_loss = 0
     tokens = 0
@@ -184,7 +184,6 @@ def train_epoch(
         train_state.step += 1
         train_state.samples += batch.src.shape[0]
         train_state.tokens += batch.ntokens
-
 
         # Update learning rate scheduler
         scheduler.step()
@@ -228,7 +227,6 @@ def val_epoch(
     tokens = 0
 
     for batch in tqdm(data_iter):
-        del b
         encoded_decoded = model.forward(batch.src, batch.tgt, batch.src_mask, batch.tgt_mask)
         out = model.generator(encoded_decoded)
 
