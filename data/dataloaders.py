@@ -1,6 +1,7 @@
 from os.path import exists
 from typing import Callable, Iterable
 
+from batch import Batch
 import spacy
 import torch
 import torchtext.vocab
@@ -105,7 +106,7 @@ def collate_batch(
 
     src = torch.stack(src_list)
     tgt = torch.stack(tgt_list)
-    return (src, tgt)
+    return Batch(src, tgt, pad=pad_id)
 
 
 def create_dataloaders(

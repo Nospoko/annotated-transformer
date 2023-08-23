@@ -162,7 +162,6 @@ def train_epoch(
     optimizer: torch.optim.Optimizer,
     scheduler: LambdaLR,
     train_state: TrainState,
-    pad_idx=2,
     accum_iter=1,
     log_frequency=10,
 ) -> tuple[float, TrainState]:
@@ -175,11 +174,10 @@ def train_epoch(
     # create progress bar
     pbar = tqdm(data_iter)
 
-    for b in pbar:  # for batch in dataloader
-        batch = Batch(b[0], b[1], pad_idx)
+    for batch in pbar:  # for batch in dataloader
         encode_decode = model.forward(batch.src, batch.tgt, batch.src_mask, batch.tgt_mask)
         out = model.generator(encode_decode)
-        del b, encode_decode
+        del encode_decode
         loss = criterion(einops.rearrange(out, "b n d -> (b n) d"), einops.rearrange(batch.tgt_y, "b n -> (b n)")) / batch.ntokens
         loss.backward()
 
@@ -187,13 +185,6 @@ def train_epoch(
         train_state.samples += batch.src.shape[0]
         train_state.tokens += batch.ntokens
 
-        # Update the model parameters and optimizer gradients every `accum_iter` iterations
-        if i % accum_iter == 0:
-            optimizer.step()
-            optimizer.zero_grad(set_to_none=True)
-            n_accum += 1
-            train_state.accum_step += 1
-        i += 1
 
         # Update learning rate scheduler
         scheduler.step()
@@ -211,6 +202,15 @@ def train_epoch(
                 f"Epoch Step: {i:6d} | Accumulation Step: {n_accum:3d} | Loss: {loss.item():6.2f}"
                 + f"| Tokens / Sec {tok_rate:7.1f} | Learning Rate: {lr:6.1e}"
             )
+            del loss, out
+            # Update the model parameters and optimizer gradients every `accum_iter` iterations
+            if i % accum_iter == 0:
+                optimizer.step()
+                optimizer.zero_grad(set_to_none=True)
+                n_accum += 1
+                train_state.accum_step += 1
+            i += 1
+
             # log the loss each to Weights and Biases
             wandb.log({"train_steps/loss": loss.item()})
     del loss, batch, out
@@ -222,14 +222,12 @@ def val_epoch(
     data_iter: Iterable,
     model: nn.Module,
     criterion: Callable,
-    pad_idx=2,
 ) -> float:
     total_tokens = 0
     total_loss = 0
     tokens = 0
 
-    for b in tqdm(data_iter):
-        batch = Batch(b[0], b[1], pad_idx)
+    for batch in tqdm(data_iter):
         del b
         encoded_decoded = model.forward(batch.src, batch.tgt, batch.src_mask, batch.tgt_mask)
         out = model.generator(encoded_decoded)
