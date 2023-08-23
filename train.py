@@ -85,7 +85,7 @@ def train_model(
         dropout=cfg.model.dropout,
     )
     model.to(device)
-
+    print(torch.cuda.memory_allocated())
     # Set LabelSmoothing as a criterion for loss calculation
     criterion = LabelSmoothing(size=len(vocab_tgt), padding_idx=pad_idx, smoothing=0.1)
     criterion.to(device)
@@ -101,7 +101,7 @@ def train_model(
         batch_size=cfg.batch_size,
         max_padding=cfg.max_padding,
     )
-
+    print(torch.cuda.memory_allocated())
     # Define optimizer and learning rate scheduler
     optimizer = torch.optim.Adam(model.parameters(), lr=cfg.base_lr, betas=(0.9, 0.98), eps=1e-9)
     lr_scheduler = LambdaLR(
@@ -127,7 +127,7 @@ def train_model(
             accum_iter=cfg["accum_iter"],
             log_frequency=cfg.log_frequency,
         )
-
+        print(torch.cuda.memory_allocated())
         # Save checkpoint after each epoch
         file_path = f"models/{cfg.file_prefix}-{run_id}-{epoch}.pt"
         torch.save(
