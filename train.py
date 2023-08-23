@@ -103,18 +103,17 @@ def train_model(
     )
 
     # Define optimizer and learning rate scheduler
-    optimizer = torch.optim.Adam(model.parameters(), lr=cfg.base_lr, betas=(0.9, 0.98), eps=1e-9)
-    lr_scheduler = LambdaLR(
-        optimizer=optimizer,
-        lr_lambda=lambda step: rate(step, cfg.model.d_model, factor=1, warmup=cfg.warmup),
-    )
 
     train_state = TrainState()
-
     for epoch in range(cfg.num_epochs):
+        optimizer = torch.optim.Adam(model.parameters(), lr=cfg.base_lr, betas=(0.9, 0.98), eps=1e-9)
+        lr_scheduler = LambdaLR(
+            optimizer=optimizer,
+            lr_lambda=lambda step: rate(step, cfg.model.d_model, factor=1, warmup=cfg.warmup),
+        )
+
         model.train()
         print(f"Epoch {epoch}", flush=True)
-
         # Train model for one epoch
         t_loss, train_state = train_epoch(
             train_dataloader,
@@ -127,6 +126,7 @@ def train_model(
             accum_iter=cfg["accum_iter"],
             log_frequency=cfg.log_frequency,
         )
+        del lr_scheduler, optimizer  # only deleting both lr_scheduler and optimizer frees memory
 
         # Save checkpoint after each epoch
         file_path = f"models/{cfg.file_prefix}-{run_id}-{epoch}.pt"
@@ -143,18 +143,18 @@ def train_model(
         torch.cuda.empty_cache()
 
         print(f"Epoch {epoch} Validation", flush=True)
-        model.eval()
-        # Evaluate the model on validation set
-        sloss = val_epoch(
-            train_dataloader,
-            model,
-            criterion,
-        )
+        with torch.no_grad():
+            model.eval()
+            # Evaluate the model on validation set
+            sloss = val_epoch(
+                train_dataloader,
+                model,
+                criterion,
+            )
+        torch.cuda.empty_cache()
         # Log validation and training losses
         print(sloss)
         wandb.log({"val/loss": sloss, "train/loss": t_loss})
-
-        torch.cuda.empty_cache()
 
     return model, run_id
 
@@ -181,7 +181,6 @@ def train_epoch(
 
     for b in pbar:  # for batch in dataloader
         batch = Batch(b[0], b[1], pad_idx)
-
         encode_decode = model.forward(batch.src, batch.tgt, batch.src_mask, batch.tgt_mask)
         out = model.generator(encode_decode)
 
@@ -215,11 +214,8 @@ def train_epoch(
             pbar.set_description(
                 f"Epoch Step: {i:6d} | Accumulation Step: {n_accum:3d} | Loss: {loss.item():6.2f} | Tokens / Sec {tok_rate:7.1f} | Learning Rate: {lr:6.1e}"
             )
-
             # log the loss each to Weights and Biases
             wandb.log({"train_steps/loss": loss.item()})
-    del optimizer
-    del lr
     # Return average loss over all tokens and updated train state
     return total_loss / len(data_iter), train_state
 

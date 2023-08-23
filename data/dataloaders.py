@@ -50,7 +50,7 @@ def load_vocab(
     spacy_en: spacy.Language,
     slice: str,
 ) -> tuple[torchtext.vocab.Vocab, torchtext.vocab.Vocab]:
-    if not exists("vocab.pt"):
+    if not exists(f"vocab-{slice}.pt"):
         vocab_src, vocab_tgt = build_vocabulary(spacy_de, spacy_en, slice)
         torch.save((vocab_src, vocab_tgt), f"vocab-{slice}.pt")
     else:
