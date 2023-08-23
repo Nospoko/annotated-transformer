@@ -13,7 +13,14 @@ class EncoderDecoder(nn.Module):
     other models.
     """
 
-    def __init__(self, encoder: nn.Module, decoder: nn.Module, src_embed: nn.Module, tgt_embed: nn.Module, generator: nn.Module):
+    def __init__(
+        self,
+        encoder: nn.Module,
+        decoder: nn.Module,
+        src_embed: nn.Module,
+        tgt_embed: nn.Module,
+        generator: nn.Module,
+    ):
         super(EncoderDecoder, self).__init__()
         self.encoder = encoder
         self.decoder = decoder
@@ -21,7 +28,13 @@ class EncoderDecoder(nn.Module):
         self.tgt_embed = tgt_embed
         self.generator = generator
 
-    def forward(self, src: torch.Tensor, tgt: torch.Tensor, src_mask: torch.Tensor, tgt_mask: torch.Tensor):
+    def forward(
+        self,
+        src: torch.Tensor,
+        tgt: torch.Tensor,
+        src_mask: torch.Tensor,
+        tgt_mask: torch.Tensor,
+    ):
         """Take in and process masked src and target sequences."""
         return self.decode(self.encode(src, src_mask), src_mask, tgt, tgt_mask)
 

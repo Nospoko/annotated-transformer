@@ -179,8 +179,9 @@ def train_epoch(
         batch = Batch(b[0], b[1], pad_idx)
         encode_decode = model.forward(batch.src, batch.tgt, batch.src_mask, batch.tgt_mask)
         out = model.generator(encode_decode)
-
-        loss = criterion(einops.rearrange(out, "b n d -> (b n) d"), einops.rearrange(batch.tgt_y, "b n -> (b n)")) / batch.ntokens
+        out_rearranged = einops.rearrange(out, "b n d -> (b n) d")
+        tgt_rearranged = einops.rearrange(batch.tgt_y, "b n -> (b n)")
+        loss = criterion(out_rearranged, tgt_rearranged) / batch.ntokens
         loss.backward()
 
         train_state.step += 1
@@ -208,7 +209,8 @@ def train_epoch(
             elapsed = time.time() - start
             tok_rate = tokens / elapsed
             pbar.set_description(
-                f"Epoch Step: {i:6d} | Accumulation Step: {n_accum:3d} | Loss: {loss.item():6.2f} | Tokens / Sec {tok_rate:7.1f} | Learning Rate: {lr:6.1e}"
+                f"Epoch Step: {i:6d} | Accumulation Step: {n_accum:3d} | Loss: {loss.item():6.2f}"
+                + f"| Tokens / Sec {tok_rate:7.1f} | Learning Rate: {lr:6.1e}"
             )
             # log the loss each to Weights and Biases
             wandb.log({"train_steps/loss": loss.item()})
@@ -230,7 +232,10 @@ def val_epoch(
         batch = Batch(b[0], b[1], pad_idx)
         encoded_decoded = model.forward(batch.src, batch.tgt, batch.src_mask, batch.tgt_mask)
         out = model.generator(encoded_decoded)
-        loss = criterion(einops.rearrange(out, "b n d -> (b n) d"), einops.rearrange(batch.tgt_y, "b n -> (b n)")) / batch.ntokens
+
+        out_rearranged = einops.rearrange(out, "b n d -> (b n) d")
+        tgt_rearranged = einops.rearrange(batch.tgt_y, "b n -> (b n)")
+        loss = criterion(out_rearranged, tgt_rearranged) / batch.ntokens
 
         total_loss += loss.item()
         total_tokens += batch.ntokens

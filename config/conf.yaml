@@ -6,7 +6,7 @@ base_lr: 1.0
 max_padding: 72
 warmup: 3000
 device: "cpu"
-data_slice: "1%"
+data_slice: "200"
 
 log_frequency: 10
 file_prefix: "wmt16_model"

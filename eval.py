@@ -42,7 +42,7 @@ def main(cfg):
     pad_idx = vocab_tgt["<blank>"]
     criterion = LabelSmoothing(size=len(vocab_tgt), padding_idx=pad_idx, smoothing=0.1)
     criterion.to(cfg.device)
-
+    print("Evaluating model ...")
     loss = val_epoch(data_iter=test_dataloader, model=model, criterion=criterion)
     print(f"Model loss:   {loss}")
 

@@ -12,7 +12,6 @@ class LabelSmoothing(nn.Module):
         self.confidence = 1.0 - smoothing
         self.smoothing = smoothing
         self.size = size
-        self.true_dist = None
 
     def forward(self, x: torch.Tensor, target: torch.Tensor):
         assert x.size(1) == self.size
@@ -23,5 +22,4 @@ class LabelSmoothing(nn.Module):
         mask = torch.nonzero(target.data == self.padding_idx)
         if mask.dim() > 0:
             true_dist.index_fill_(0, mask.squeeze(), 0.0)
-        self.true_dist = true_dist
-        return self.criterion(x, true_dist.clone().detach())
+        return self.criterion(x, true_dist)
