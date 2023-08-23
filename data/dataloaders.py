@@ -52,9 +52,9 @@ def load_vocab(
 ) -> tuple[torchtext.vocab.Vocab, torchtext.vocab.Vocab]:
     if not exists("vocab.pt"):
         vocab_src, vocab_tgt = build_vocabulary(spacy_de, spacy_en, slice)
-        torch.save((vocab_src, vocab_tgt), "vocab.pt")
+        torch.save((vocab_src, vocab_tgt), f"vocab-{slice}.pt")
     else:
-        vocab_src, vocab_tgt = torch.load("vocab.pt")
+        vocab_src, vocab_tgt = torch.load(f"vocab-{slice}.pt")
     print("Finished.\nVocabulary sizes:")
     print(len(vocab_src))
     print(len(vocab_tgt))
