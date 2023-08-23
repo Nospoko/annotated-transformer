@@ -177,9 +177,9 @@ def train_epoch(
 
     for b in pbar:  # for batch in dataloader
         batch = Batch(b[0], b[1], pad_idx)
-        del b
         encode_decode = model.forward(batch.src, batch.tgt, batch.src_mask, batch.tgt_mask)
         out = model.generator(encode_decode)
+        del b, encode_decode
         loss = criterion(einops.rearrange(out, "b n d -> (b n) d"), einops.rearrange(batch.tgt_y, "b n -> (b n)")) / batch.ntokens
         loss.backward()
 
