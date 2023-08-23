@@ -114,7 +114,7 @@ def train_model(
     for epoch in range(cfg.num_epochs):
         model.train()
         print(f"Epoch {epoch}", flush=True)
-
+        print(torch.cuda.memory_allocated())
         # Train model for one epoch
         t_loss, train_state = train_epoch(
             train_dataloader,
@@ -150,6 +150,8 @@ def train_model(
             model,
             criterion,
         )
+        print(torch.cuda.memory_allocated())
+
         # Log validation and training losses
         print(sloss)
         wandb.log({"val/loss": sloss, "train/loss": t_loss})
