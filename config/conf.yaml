@@ -7,6 +7,7 @@ max_padding: 72
 warmup: 3000
 device: "cpu"
 data_slice: "200"
+vocab_data_slice: ${data_slice}
 
 log_frequency: 10
 file_prefix: "wmt16_model"
