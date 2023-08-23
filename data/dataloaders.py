@@ -1,7 +1,7 @@
 from os.path import exists
 from typing import Callable, Iterable
 
-from batch import Batch
+from data.batch import Batch
 import spacy
 import torch
 import torchtext.vocab
