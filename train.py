@@ -240,6 +240,7 @@ def val_epoch(
         total_loss += loss.item()
         total_tokens += batch.ntokens
         tokens += batch.ntokens
+
     # Return average loss over all tokens and updated train state
     return total_loss / len(dataloader)
 

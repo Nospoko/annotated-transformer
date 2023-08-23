@@ -27,11 +27,11 @@ def make_model(
     ff = PositionwiseFeedForward(d_model, d_ff, dropout)
     position = PositionalEncoding(d_model, dropout)
     model = EncoderDecoder(
-        Encoder(EncoderLayer(d_model, c(attn), c(ff), dropout), n),
-        Decoder(DecoderLayer(d_model, c(attn), c(attn), c(ff), dropout), n),
-        nn.Sequential(Embeddings(d_model, vocab_src_size), c(position)),
-        nn.Sequential(Embeddings(d_model, vocab_tgt_size), c(position)),
-        Generator(d_model, vocab_tgt_size),
+        encoder=Encoder(EncoderLayer(d_model, c(attn), c(ff), dropout), n),
+        decoder=Decoder(DecoderLayer(d_model, c(attn), c(attn), c(ff), dropout), n),
+        src_embed=nn.Sequential(Embeddings(d_model, vocab_src_size), c(position)),
+        tgt_embed=nn.Sequential(Embeddings(d_model, vocab_tgt_size), c(position)),
+        generator=Generator(d_model, vocab_tgt_size),
     )
 
     # This was important from their code.
