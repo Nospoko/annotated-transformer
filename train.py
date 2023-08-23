@@ -216,8 +216,8 @@ def train_epoch(
             # log the loss each to Weights and Biases
             wandb.log({"train_steps/loss": loss.item()})
 
-        # Return average loss over all tokens and updated train state
-        return total_loss / len(data_iter), train_state
+    # Return average loss over all tokens and updated train state
+    return total_loss / len(data_iter), train_state
 
 
 def val_epoch(
