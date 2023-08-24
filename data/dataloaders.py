@@ -1,7 +1,6 @@
 from os.path import exists
 from typing import Callable, Iterable
 
-from data.batch import Batch
 import spacy
 import torch
 import torchtext.vocab
@@ -10,6 +9,7 @@ from torch.utils.data import DataLoader
 from torchtext.vocab.vocab import Vocab
 from torchtext.vocab import build_vocab_from_iterator
 
+from data.batch import Batch
 from data.dataset import TranslationDataset
 from data.tokenization import tokenize, yield_tokens, load_tokenizers
 
@@ -17,7 +17,7 @@ from data.tokenization import tokenize, yield_tokens, load_tokenizers
 def build_vocabulary(
     spacy_de: spacy.Language,
     spacy_en: spacy.Language,
-    slice: str,
+    max_tokens: int,
 ) -> tuple[torchtext.vocab.Vocab, torchtext.vocab.Vocab]:
     def tokenize_de(text):
         return tokenize(text, spacy_de)
@@ -25,12 +25,13 @@ def build_vocabulary(
     def tokenize_en(text):
         return tokenize(text, spacy_en)
 
-    dataset = TranslationDataset(language_pair="de-en", split=f"train[:{slice}]+test[:{slice}]+validation[:{slice}]")
+    dataset = TranslationDataset(language_pair="de-en", split="train")
     print("Building German Vocabulary ...")
     vocab_src = build_vocab_from_iterator(
         yield_tokens(dataset, tokenize_de, index=0),
         min_freq=2,
         specials=["<s>", "</s>", "<blank>", "<unk>"],
+        max_tokens=max_tokens,
     )
 
     print("Building English Vocabulary ...")
@@ -38,6 +39,7 @@ def build_vocabulary(
         yield_tokens(dataset, tokenize_en, index=1),
         min_freq=2,
         specials=["<s>", "</s>", "<blank>", "<unk>"],
+        max_tokens=max_tokens,
     )
 
     vocab_src.set_default_index(vocab_src["<unk>"])
@@ -49,13 +51,15 @@ def build_vocabulary(
 def load_vocab(
     spacy_de: spacy.Language,
     spacy_en: spacy.Language,
-    slice: str,
+    max_tokens: int,
 ) -> tuple[torchtext.vocab.Vocab, torchtext.vocab.Vocab]:
-    if not exists(f"vocab-{slice}.pt"):
-        vocab_src, vocab_tgt = build_vocabulary(spacy_de, spacy_en, slice)
-        torch.save((vocab_src, vocab_tgt), f"vocab-{slice}.pt")
+    vocab_path = f"vocab-{max_tokens}.pt"
+    if not exists(vocab_path):
+        vocab_src, vocab_tgt = build_vocabulary(spacy_de, spacy_en, max_tokens)
+        torch.save((vocab_src, vocab_tgt), vocab_path)
     else:
-        vocab_src, vocab_tgt = torch.load(f"vocab-{slice}.pt")
+        vocab_src, vocab_tgt = torch.load(vocab_path)
+
     print("Finished.\nVocabulary sizes:")
     print(len(vocab_src))
     print(len(vocab_tgt))
@@ -199,6 +203,7 @@ if __name__ == "__main__":
 
     dataset = TranslationDataset(split="validation[:5]", language_pair="de-en")
     spacy_de, spacy_en = load_tokenizers()
+    # FIXME
     vocab_src, vocab_tgt = load_vocab(spacy_de, spacy_en, "1%")
     train_data, vel_data = create_dataloaders(vocab_src, vocab_tgt, spacy_de, spacy_en, batch_size=16, slice="5")
 

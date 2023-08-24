@@ -13,25 +13,25 @@ from modules.encoderdecoder import Generator, EncoderDecoder, subsequent_mask
 
 
 def make_model(
-    src_vocab: int,
-    tgt_vocab: int,
-    n=6,
-    d_model=512,
-    d_ff=2048,
-    h=8,
-    dropout=0.1,
-):
+    vocab_src_size: int,
+    vocab_tgt_size: int,
+    n: int = 6,
+    d_model: int = 512,
+    d_ff: int = 2048,
+    h: int = 8,
+    dropout: float = 0.1,
+) -> nn.Module:
     """Helper: Construct a model from hyperparameters."""
     c = copy.deepcopy
     attn = MultiHeadedAttention(h, d_model)
     ff = PositionwiseFeedForward(d_model, d_ff, dropout)
     position = PositionalEncoding(d_model, dropout)
     model = EncoderDecoder(
-        Encoder(EncoderLayer(d_model, c(attn), c(ff), dropout), n),
-        Decoder(DecoderLayer(d_model, c(attn), c(attn), c(ff), dropout), n),
-        nn.Sequential(Embeddings(d_model, src_vocab), c(position)),
-        nn.Sequential(Embeddings(d_model, tgt_vocab), c(position)),
-        Generator(d_model, tgt_vocab),
+        encoder=Encoder(EncoderLayer(d_model, c(attn), c(ff), dropout), n),
+        decoder=Decoder(DecoderLayer(d_model, c(attn), c(attn), c(ff), dropout), n),
+        src_embed=nn.Sequential(Embeddings(d_model, vocab_src_size), c(position)),
+        tgt_embed=nn.Sequential(Embeddings(d_model, vocab_tgt_size), c(position)),
+        generator=Generator(d_model, vocab_tgt_size),
     )
 
     # This was important from their code.
