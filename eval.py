@@ -20,7 +20,7 @@ def main(cfg):
     )
     train_cfg = OmegaConf.create(checkpoint["cfg"])
     spacy_de, spacy_en = load_tokenizers()
-    vocab_src, vocab_tgt = load_vocab(spacy_de, spacy_en, train_cfg)
+    vocab_src, vocab_tgt = load_vocab(spacy_de, spacy_en, train_cfg.max_tokens)
 
     print("Preparing Data ...")
     test_dataloader = create_dataloader(

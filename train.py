@@ -22,7 +22,7 @@ from data.dataloaders import load_vocab, load_tokenizers, create_dataloaders
 def main(cfg: DictConfig):
     # load tokenizers and vocab
     spacy_de, spacy_en = load_tokenizers()
-    vocab_src, vocab_tgt = load_vocab(spacy_de, spacy_en, cfg)
+    vocab_src, vocab_tgt = load_vocab(spacy_de, spacy_en, cfg.max_tokens)
     vocab_src_size = len(vocab_src)
     vocab_tgt_size = len(vocab_tgt)
 

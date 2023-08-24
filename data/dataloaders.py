@@ -4,7 +4,6 @@ from typing import Callable, Iterable
 import spacy
 import torch
 import torchtext.vocab
-from omegaconf import DictConfig
 from torch.nn.functional import pad
 from torch.utils.data import DataLoader
 from torchtext.vocab.vocab import Vocab
@@ -52,11 +51,11 @@ def build_vocabulary(
 def load_vocab(
     spacy_de: spacy.Language,
     spacy_en: spacy.Language,
-    cfg: DictConfig,
+    max_tokens: int,
 ) -> tuple[torchtext.vocab.Vocab, torchtext.vocab.Vocab]:
-    vocab_path = f"vocab-{cfg.max_tokens}.pt"
+    vocab_path = f"vocab-{max_tokens}.pt"
     if not exists(vocab_path):
-        vocab_src, vocab_tgt = build_vocabulary(spacy_de, spacy_en, cfg.max_tokens)
+        vocab_src, vocab_tgt = build_vocabulary(spacy_de, spacy_en, max_tokens)
         torch.save((vocab_src, vocab_tgt), vocab_path)
     else:
         vocab_src, vocab_tgt = torch.load(vocab_path)
@@ -204,6 +203,7 @@ if __name__ == "__main__":
 
     dataset = TranslationDataset(split="validation[:5]", language_pair="de-en")
     spacy_de, spacy_en = load_tokenizers()
+    # FIXME
     vocab_src, vocab_tgt = load_vocab(spacy_de, spacy_en, "1%")
     train_data, vel_data = create_dataloaders(vocab_src, vocab_tgt, spacy_de, spacy_en, batch_size=16, slice="5")
 
