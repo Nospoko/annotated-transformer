@@ -22,10 +22,6 @@ For example, you can run the training in colab by cloning the repository and run
 ```
 You have to commit the notebook to download the trained model.
 
-### Important note:
-If you wish to change data_slice parameter to be different from the last run, you have to delete
-'vocab.pt' file from annotated-transformer directory.
-
 ## Examples
 You can produce translation examples by running:
 ```shell

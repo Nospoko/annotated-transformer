@@ -22,7 +22,7 @@ def main(cfg: DictConfig):
         spacy_en=spacy_en,
         slice="100%",
         split="test",
-        batch_size=1,
+        batch_size=train_cfg.train.batch_size,
         shuffle=cfg.random_examples,
     )
 
@@ -39,7 +39,7 @@ def main(cfg: DictConfig):
 
     print("Checking Model Outputs:")
     translations = translate_sample_sentences(
-        valid_dataloader=test_dataloader,
+        dataloader=test_dataloader,
         model=model,
         vocab_src=vocab_src,
         vocab_tgt=vocab_tgt,

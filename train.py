@@ -162,8 +162,8 @@ def train_epoch(
     optimizer: torch.optim.Optimizer,
     lr_scheduler: LambdaLR,
     train_state: TrainState,
-    accum_iter=1,
-    log_frequency=10,
+    accum_iter: int = 1,
+    log_frequency: int = 10,
 ) -> tuple[float, TrainState]:
     start = time.time()
     total_loss = 0
