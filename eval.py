@@ -6,6 +6,7 @@ from omegaconf import OmegaConf
 
 from train import val_epoch
 from model import make_model
+from utils import translate_sample_sentences
 from modules.label_smoothing import LabelSmoothing
 from data.dataloaders import load_vocab, load_tokenizers, create_dataloader
 
@@ -30,7 +31,7 @@ def main(cfg):
         slice="100%",
         split="test",
         device=cfg.device,
-        batch_size=cfg.train.batch_size,
+        batch_size=train_cfg.train.batch_size,
     )
 
     print("Loading Trained Model ...")
@@ -45,21 +46,38 @@ def main(cfg):
     model.to(cfg.device)
     model.load_state_dict(checkpoint["model_state_dict"])
 
-    pad_idx = vocab_tgt["<blank>"]
-    criterion = LabelSmoothing(
-        size=len(vocab_tgt),
-        padding_idx=pad_idx,
-        smoothing=train_cfg.train.label_smoothing,
-    )
-    criterion.to(cfg.device)
+    if cfg.tasks.val_epoch:
+        pad_idx = vocab_tgt["<blank>"]
+        criterion = LabelSmoothing(
+            size=len(vocab_tgt),
+            padding_idx=pad_idx,
+            smoothing=train_cfg.train.label_smoothing,
+        )
+        criterion.to(cfg.device)
 
-    print("Evaluating model ...")
-    loss = val_epoch(
-        dataloader=test_dataloader,
-        model=model,
-        criterion=criterion,
-    )
-    print(f"Model loss:   {loss}")
+        print("Evaluating model ...")
+        loss = val_epoch(
+            dataloader=test_dataloader,
+            model=model,
+            criterion=criterion,
+        )
+        print(f"Model loss:   {loss}")
+
+    if cfg.tasks.translation:
+        print("Checking Model Outputs:")
+        translations = translate_sample_sentences(
+            dataloader=test_dataloader,
+            model=model,
+            vocab_src=vocab_src,
+            vocab_tgt=vocab_tgt,
+            n_examples=cfg.n_examples,
+        )
+
+        for translation in translations:
+            print("Source Text (Input)        : " + translation["src"])
+            print("Target Text (Ground Truth) : " + translation["tgt"])
+            print("Model Output               : " + translation["out"])
+            print("===========")
 
 
 def load_checkpoint(run_name: str, epoch: str = "final", device: str = "cpu"):

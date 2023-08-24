@@ -220,6 +220,7 @@ def train_epoch(
     return total_loss / len(dataloader), train_state
 
 
+@torch.no_grad()
 def val_epoch(
     dataloader: Iterable,
     model: nn.Module,
