@@ -1,1 +1,8 @@
 .idea
+*__pycache__*
+vocab.pt
+wandb/*
+models/*
+outputs/*
+vocab*
+.*
